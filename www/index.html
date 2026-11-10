@@ -725,9 +725,10 @@ async function checkUpdate(manual){
   if(DESK){deskManual=manual;const r=await DESK.check().catch(()=>({}));if(r&&r.dev&&manual)toast("Entwicklungsversion – keine Updates");return}
   if(!isNative()){if(manual)toast("Updates gibt es in der installierten App (Android / Windows)");return}
   const U=updater();let remote;
-  try{try{await U.notifyAppReady()}catch(e){}
+  try{if(U)try{await U.notifyAppReady()}catch(e){}
     remote=await(await fetch(FEED+"?t="+Date.now(),{cache:"no-store"})).json();}
-  catch(e){if(manual)toast("Update-Server nicht erreichbar");return}
+  catch(e){if(manual)toast("Update-Server nicht erreichbar: "+(e&&e.message||e));return}
+  if(!U){if(manual)toast("Update-Baustein fehlt – bitte reLib.apk neu installieren");return}
   // Neue Android-Bausteine nötig? → komplette APK neu installieren
   let build=0;try{const A=window.Capacitor.Plugins.App;if(A)build=+(await A.getInfo()).build}catch(e){}
   if(remote.minApk&&build&&build<+remote.minApk&&remote.apk){
@@ -735,8 +736,8 @@ async function checkUpdate(manual){
   if(+remote.version>+APP_VER){
     updBar("Update verfügbar: Version "+remote.version,"Jetzt aktualisieren",async(btn)=>{btn.disabled=true;btn.textContent="Wird geladen …";
       try{const b=await U.download({url:remote.url,version:String(remote.version)});btn.textContent="Wird installiert …";await U.set({id:b.id})}
-      catch(e){btn.disabled=false;btn.textContent="Erneut versuchen";toast("Update fehlgeschlagen")}});
-  }else if(manual)toast("re.lib ist aktuell (Version "+APP_VER+")");
+      catch(e){btn.disabled=false;btn.textContent="Erneut versuchen";toast("Update fehlgeschlagen: "+(e&&e.message||e))}});
+  }else if(manual)toast("re.lib ist aktuell (Version "+APP_VER+", Server "+remote.version+")");
 }
 document.getElementById("updchk").addEventListener("click",()=>checkUpdate(true));
 setTimeout(()=>checkUpdate(false),1500);
