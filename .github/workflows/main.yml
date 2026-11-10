@@ -1,0 +1,91 @@
+name: re.lib bauen (Android + Windows)
+on: [push, workflow_dispatch]
+permissions:
+  contents: write
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  VER: 1.0.${{ github.run_number }}
+  TAG: v1.0.${{ github.run_number }}
+
+jobs:
+  # ---------------- ANDROID (APK) ----------------
+  android:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: 17 }
+      - name: Versionsnummer eintragen
+        run: |
+          FEED="https://github.com/${{ github.repository }}/releases/latest/download/version.json"
+          sed -i "s#__BUILD__#${{ github.run_number }}#g; s#__FEED__#$FEED#g" www/index.html
+      - run: npm install
+      - run: npx cap add android
+      - run: npx cap sync android
+      - name: Android einstellen (SDK 35, Version, Symbol)
+        run: |
+          sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 24/; s/compileSdkVersion = [0-9]+/compileSdkVersion = 35/; s/targetSdkVersion = [0-9]+/targetSdkVersion = 35/' android/variables.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/; s/versionName \"[^\"]*\"/versionName \"$VER\"/" android/app/build.gradle
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            for f in ic_launcher ic_launcher_round ic_launcher_foreground; do
+              [ -d android/app/src/main/res/mipmap-$d ] && cp www/icon-512.png android/app/src/main/res/mipmap-$d/$f.png || true
+            done
+          done
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Update-Paket und version.json
+        run: |
+          cd www && zip -qr ../www.zip . && cd ..
+          cp android/app/build/outputs/apk/debug/app-debug.apk reLib.apk
+          REPO="${{ github.repository }}"; N=${{ github.run_number }}
+          # Haben sich Android-Bausteine geändert? Dann muss die APK neu installiert werden.
+          HASH=$(cat package.json capacitor.config.json | sha256sum | cut -c1-16)
+          PREV=$(curl -sfL "https://github.com/$REPO/releases/latest/download/version.json" || echo '{}')
+          PH=$(echo "$PREV" | jq -r '.native // ""'); PMIN=$(echo "$PREV" | jq -r '.minApk // 0')
+          if [ "$HASH" != "$PH" ]; then MIN=$N; else MIN=$PMIN; fi
+          jq -n --argjson v $N --argjson m $MIN --arg h "$HASH" \
+            --arg u "https://github.com/$REPO/releases/download/$TAG/www.zip" \
+            --arg a "https://github.com/$REPO/releases/download/$TAG/reLib.apk" \
+            '{version:$v, url:$u, apk:$a, native:$h, minApk:$m}' > version.json
+          cat version.json
+      - name: Release erstellen
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.TAG }}
+          name: re.lib ${{ env.VER }}
+          files: |
+            reLib.apk
+            www.zip
+            version.json
+          make_latest: true
+
+  # ---------------- WINDOWS (Setup.exe) ----------------
+  windows:
+    needs: android
+    runs-on: windows-latest
+    defaults: { run: { shell: bash } }
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - name: Version und Repository eintragen
+        run: |
+          OWNER="${GITHUB_REPOSITORY%%/*}"; REPO="${GITHUB_REPOSITORY##*/}"
+          sed -i "s#__BUILD__#${{ github.run_number }}#g; s#__FEED__##g" www/index.html
+          cp -r www desktop/www
+          cd desktop
+          sed -i "s#__OWNER__#$OWNER#; s#__REPO__#$REPO#; s#\"version\": \"1.0.0\"#\"version\": \"$VER\"#" package.json
+      - name: Windows-App bauen
+        run: cd desktop && npm install && npx electron-builder --win nsis --publish never
+      - name: Setup zum Release hinzufügen
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ env.TAG }}
+          files: |
+            desktop/dist/reLib-Setup-*.exe
+            desktop/dist/reLib-Setup-*.exe.blockmap
+            desktop/dist/latest.yml
+          make_latest: true
