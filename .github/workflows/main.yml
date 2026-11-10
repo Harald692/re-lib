@@ -1,0 +1,60 @@
+name: re.lib bauen
+on: [push, workflow_dispatch]
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+      - name: Versionsnummer eintragen
+        run: |
+          FEED="https://github.com/${{ github.repository }}/releases/latest/download/version.json"
+          sed -i "s#__BUILD__#${{ github.run_number }}#g; s#__FEED__#$FEED#g" www/index.html www/sw.js
+          printf '{"version": %s}' "${{ github.run_number }}" > www/version.json
+      - run: npm install
+      - run: npx cap add android
+      - run: npx cap sync android
+      - name: Android-SDK 35 einstellen
+        run: |
+          sed -i -E 's/minSdkVersion = [0-9]+/minSdkVersion = 24/; s/compileSdkVersion = [0-9]+/compileSdkVersion = 35/; s/targetSdkVersion = [0-9]+/targetSdkVersion = 35/' android/variables.gradle
+          echo "android.suppressUnsupportedCompileSdk=35" >> android/gradle.properties
+      - name: App-Symbol setzen
+        run: |
+          for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+            for f in ic_launcher ic_launcher_round ic_launcher_foreground; do
+              [ -d android/app/src/main/res/mipmap-$d ] && cp www/icon-512.png android/app/src/main/res/mipmap-$d/$f.png || true
+            done
+          done
+          rm -rf android/app/src/main/res/mipmap-anydpi-v26
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: Update-Paket erstellen
+        run: |
+          cd www && zip -qr ../www.zip . && cd ..
+          printf '{"version": %s, "url": "https://github.com/%s/releases/download/v%s/www.zip"}' "${{ github.run_number }}" "${{ github.repository }}" "${{ github.run_number }}" > version.json
+          cp android/app/build/outputs/apk/debug/app-debug.apk reLib.apk
+      - name: Als Release veröffentlichen
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: re.lib Version ${{ github.run_number }}
+          files: |
+            reLib.apk
+            www.zip
+            version.json
+          make_latest: true
+      - name: Windows-App (Web) vorbereiten
+        uses: actions/upload-pages-artifact@v3
+        with: { path: www }
+  pages:
+    needs: build
+    runs-on: ubuntu-latest
+    environment: { name: github-pages }
+    steps:
+      - uses: actions/deploy-pages@v4
