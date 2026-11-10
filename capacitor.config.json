@@ -1,2 +1,0 @@
-{"appId":"onl.resolution.relib","appName":"re.lib","webDir":"www","android":{"backgroundColor":"#173a6b"},
- "plugins":{"CapacitorUpdater":{"autoUpdate":false,"resetWhenUpdate":false},"CapacitorHttp":{"enabled":true}}}
