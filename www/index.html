@@ -465,6 +465,92 @@ function dpCard(){
   setType("liq");return c;
 }
 
+/* ============ BERECHNUNG: LÜFTUNG / ABSAUGUNG ============ */
+const DUCT_K=[["Wickelfalzrohr verzinkt",0.15],["Stahlblech-Kanal verzinkt",0.15],["Edelstahlrohr",0.05],["Kunststoffrohr PVC / PP",0.007],["Aluflexrohr (gestreckt)",1.5],["Flexibler Schlauch (PU, Spirale)",2.0],["Mauerwerk / Beton-Schacht",3.0]];
+const DUCT_Z=[["Bogen 90° (R = 1,5·d)",0.3],["Bogen 45°",0.15],["Knie 90° eckig, ohne Leitbleche",1.2],["Abzweig 45° – Durchgang",0.2],["Abzweig 45° – Abzweig",0.5],["T-Stück 90° – Abzweig",1.0],["Reduzierung / Übergang",0.1],["Haubeneintritt glattes Rohrende",0.9],["Haubeneintritt mit Flansch",0.5],["Einlaufdüse (gerundet)",0.05],["Lüftungsgitter",2.5],["Regel-/Jalousieklappe offen",0.5],["Brandschutzklappe",0.5],["Dachhaube / Ausblas",1.0]];
+const VX=[["Lösemitteldämpfe, ruhige Luft (0,3 m/s)",0.3],["Kleben, Lackieren klein (0,5 m/s)",0.5],["Schweissrauch, Löten (0,7 m/s)",0.7],["Schweissen intensiv / Galvanik (1,0 m/s)",1.0],["Abfüllen, Mischen Pulver (1,5 m/s)",1.5],["Schleifen, Trennen (3,0 m/s)",3.0],["Strahlen, Schleifscheiben gross (5,0 m/s)",5.0]];
+const VT=[["Gase, Dämpfe, Rauch",10],["Schweissrauch, Feinstaub",15],["Holzstaub, leichter Staub",20],["Holzspäne, Metallstaub",23],["Schwerer / feuchter Staub",25]];
+const DN=[80,100,125,140,150,160,180,200,224,250,280,315,355,400,450,500,560,630,710,800,900,1000,1120,1250];
+function ventCard(){
+  const c=el("div",{class:"card wide"});c.dataset.s="lüftung absaugung luftleitung kanal ventilator luftwechsel haube erfassung staub rauch dn wickelfalz";
+  c.dataset.pdf="Lüftungsberechnung – Absaugung & Luftleitung";
+  c.append(el("div",{class:"grp"},"Lüftungstechnik"),el("h3",{},"Absaugung & Luftleitungen"));
+  const fg=el("div",{class:"fig"});fg.innerHTML=sv(
+    rc(20,88,90,8,"lf")+pa("M35,60 L55,40 H75 L95,60 Z","lf")+tx(28,52,"A")+dim(115,60,115,88,"",0,0)+tx(124,78,"x")+fa(65,84,65,64,"",0,0)+tx(80,82,"vₓ",1)+
+    pa("M58,40 V18 H190 M72,40 V30 H190")+ln(58,24,190,24,"cl")+fa(90,24,140,24,"v",115,18)+tx(130,46,"d / a×b, L, k")+
+    ci(208,24,16,"lf")+pa("M200,24 l8,-8 l8,8 l-8,8 z")+tx(208,54,"Ventilator")+pa("M224,18 H250")+fa(236,12,256,12,"",0,0)+tx(150,104,"Σζ · Filter · Schalldämpfer"));
+  c.append(fg);
+  const fx=el("div",{class:"f"},"Haube frei: V̇ = vₓ·(10·x² + A)   mit Flansch: V̇ = 0,75·vₓ·(10·x² + A)   Schlitz: V̇ = 3,7·L·vₓ·x\nKanal: Δp = (λ·L/d_h + Σζ)·ρ·v²/2 + Δp_Komponenten    d_h = 2·a·b/(a+b)    P = V̇·Δp/η");
+  c.append(fx);
+  const mk=(par,lab,q,u,v)=>{const inp=el("input",{inputmode:"decimal",value:String(v).replace(".",",")}),us=unitSel(q,u);const row=el("div",{class:"row"},el("label",{},lab),inp,us);par.append(row);
+    let last=us.value;us.addEventListener("change",()=>{const x=parse(inp.value.replace(/[’']/g,""));if(isFinite(x))inp.value=fmt(fromSI(q,us.value,toSI(q,last,x))).replace(/[’']/g,"");last=us.value;calc()});inp.addEventListener("input",calc);
+    return{row,inp,us,q,get:()=>toSI(q,us.value,parse(inp.value.replace(/[’']/g,""))),set:x=>{inp.value=fmt(fromSI(q,us.value,x)).replace(/[’']/g,"");last=us.value}}};
+  const mo=(par,lab,q,u)=>{const v=el("div",{class:"v"},"–"),us=q?unitSel(q,u):el("span",{},u||"");const row=el("div",{class:"row out"},el("label",{},lab),v,us);par.append(row);let si=NaN;
+    const o={row,set:x=>{si=x;v.textContent=q?fmt(fromSI(q,us.value,x)):(typeof x==="string"?x:fmt(x))}};if(q)us.addEventListener("change",()=>o.set(si));return o};
+  const sel=(par,lab,opts)=>{const s=el("select");opts.forEach(([v,t])=>s.append(el("option",{value:v},t)));const row=el("div",{class:"row"},el("label",{},lab),s);s.style.gridColumn="2 / 4";par.append(row);s.addEventListener("change",calc);return{row,s}};
+  const pre=(par,list,target,fmtv)=>{const s=el("select");s.append(el("option",{value:""},"Vorlage wählen …"));list.forEach(([n,v])=>s.append(el("option",{value:v},fmtv?fmtv(n,v):n)));par.append(el("div",{class:"preset"},el("span"),s));s.addEventListener("change",()=>{if(s.value){target.set(+s.value);calc()}});return s};
+  const cols=el("div",{class:"cols"}),L=el("div"),R=el("div");cols.append(L,R);c.append(cols);
+  // --- Volumenstrom
+  L.append(el("div",{class:"sub"},"1  Volumenstrom"));
+  const mode=sel(L,"Bestimmen über",[["haube","Absaughaube / Erfassung"],["lw","Luftwechsel Raum"],["dir","Direkte Eingabe"]]);
+  const htyp=sel(L,"Haubenform",[["frei","Haube / Öffnung frei"],["flansch","Haube mit Flansch"],["schlitz","Schlitzabsaugung"],["schlitzf","Schlitz mit Flansch"]]);
+  const vx=mk(L,"Erfassungsgeschw. vₓ","vel","m/s",0.7);const vxp=pre(L,VX,{set:x=>vx.set(x)});
+  const xx=mk(L,"Abstand Quelle – Haube x","len","mm",300);
+  const ha=mk(L,"Haubenöffnung a","len","mm",400),hb=mk(L,"Haubenöffnung b","len","mm",300),sl=mk(L,"Schlitzlänge L","len","mm",1000);
+  const rv=mk(L,"Raumvolumen","vol","m³",300),lw=mk(L,"Luftwechsel n [pro Stunde]","num","–",4);
+  const vd=mk(L,"Volumenstrom V̇","vflow","m³/h",1500);
+  const ns=mk(L,"Anzahl gleicher Absaugstellen","num","–",1);
+  // --- Leitung
+  R.append(el("div",{class:"sub"},"2  Luftleitung"));
+  const form=sel(R,"Querschnitt",[["rund","rund (Wickelfalzrohr)"],["eckig","rechteckig (Kanal)"]]);
+  const dd=mk(R,"Innendurchmesser d","len","mm",250),ka=mk(R,"Kanalbreite a","len","mm",400),kb=mk(R,"Kanalhöhe b","len","mm",250);
+  const le=mk(R,"Leitungslänge L","len","m",20),kr=mk(R,"Rauheit k","len","mm",0.15);pre(R,DUCT_K,{set:x=>kr.set(x/1000)},(n,v)=>n+"  (k = "+String(v).replace(".",",")+" mm)");
+  const tl=mk(R,"Lufttemperatur","temp","°C",20),pl=mk(R,"Luftdruck (Höhe)","gpress","hPa",1013);
+  const vz=mk(R,"Ziel-Transportgeschw. (für DN-Vorschlag)","vel","m/s",15);pre(R,VT,{set:x=>vz.set(x)},(n,v)=>n+" ("+v+" m/s)");
+  // --- Formteile & Komponenten
+  const det=el("details");det.append(el("summary",{class:"sub",style:"cursor:pointer;list-style:revert"},"3  Formteile & Komponenten"));
+  const fit=el("div",{class:"fit"});const cnt=DUCT_Z.map(([n,z])=>{const i=el("input",{inputmode:"numeric",value:"0"});i.addEventListener("input",calc);fit.append(el("div",{},el("span",{},n),i,el("small",{},"ζ "+String(z).replace(".",","))));return[i,z]});
+  det.append(fit);const zx=mk(det,"Zusätzliche ζ-Werte (Summe)","num","–",0);
+  const cf=mk(det,"Δp Filter (Endwert)","press","Pa",0),cs=mk(det,"Δp Schalldämpfer","press","Pa",0),ca=mk(det,"Δp Abscheider / Zyklon","press","Pa",0),co=mk(det,"Δp Sonstiges (Haube, Gerät)","press","Pa",0);
+  const eta=mk(det,"Wirkungsgrad Ventilator η","pct","%",60),res=mk(det,"Reserve auf Δp","pct","%",10);
+  c.append(det);
+  // --- Ergebnisse
+  c.append(el("div",{class:"sub"},"Ergebnis"));const o1=el("div"),o2=el("div"),oc=el("div",{class:"cols"});oc.append(o1,o2);c.append(oc);
+  const oVs=mo(o1,"Volumenstrom je Absaugstelle","vflow","m³/h"),oV=mo(o1,"Volumenstrom gesamt","vflow","m³/h"),oDh=mo(o1,"Hydraul. Durchmesser d_h","len","mm"),ov=mo(o1,"Luftgeschwindigkeit v","vel","m/s"),opd=mo(o1,"Dynamischer Druck p_d","press","Pa"),oRe=mo(o1,"Reynoldszahl Re","","–"),oLa=mo(o1,"Rohrreibungszahl λ","","–"),oDN=mo(o1,"Vorschlag Rohr (Ziel-v)","","");
+  const oR=mo(o2,"Druckgefälle R","dpl","Pa/m"),oPR=mo(o2,"Δp Rohrreibung","press","Pa"),oZ=mo(o2,"Σζ gesamt","","–"),oPZ=mo(o2,"Δp Formteile","press","Pa"),oPK=mo(o2,"Δp Komponenten","press","Pa"),oPT=mo(o2,"Δp gesamt inkl. Reserve","press","Pa"),oPL=mo(o2,"Luftleistung V̇·Δp","power","kW"),oPW=mo(o2,"Wellenleistung Ventilator","power","kW");
+  const note=el("div",{class:"note"}),hint=el("div",{class:"hint"});c.append(note,hint);
+  function calc(){
+    const m=mode.s.value,h=htyp.s.value,rnd=form.s.value==="rund";
+    const show=(o,b)=>o.row.classList.toggle("hide",!b);
+    show(htyp,m==="haube");[vx,xx].forEach(o=>show(o,m==="haube"));vxp.parentNode.classList.toggle("hide",m!=="haube");
+    [ha,hb].forEach(o=>show(o,m==="haube"&&!h.startsWith("schlitz")));show(sl,m==="haube"&&h.startsWith("schlitz"));
+    [rv,lw].forEach(o=>show(o,m==="lw"));show(vd,m==="dir");show(ns,m!=="lw");show(oVs,m!=="lw");
+    show(dd,rnd);[ka,kb].forEach(o=>show(o,!rnd));
+    // Volumenstrom
+    let V1=NaN;
+    if(m==="haube"){const v=vx.get(),x=xx.get();if(h==="frei")V1=v*(10*x*x+ha.get()*hb.get());else if(h==="flansch")V1=0.75*v*(10*x*x+ha.get()*hb.get());else if(h==="schlitz")V1=3.7*sl.get()*v*x;else V1=2.6*sl.get()*v*x}
+    else if(m==="lw")V1=rv.get()*lw.get()/3600;else V1=vd.get();
+    const n=m==="lw"?1:Math.max(1,Math.round(ns.get()||1)),V=V1*n;oVs.set(V1);oV.set(V);
+    // Luft
+    const T=tl.get(),P=pl.get(),rho=P/(287.05*T),mu=1.458e-6*T**1.5/(T+110.4);
+    const A=rnd?Math.PI*dd.get()**2/4:ka.get()*kb.get(),dh=rnd?dd.get():2*ka.get()*kb.get()/(ka.get()+kb.get());
+    const v=V/A,pd=rho*v*v/2,Re=rho*v*dh/mu,la=lambdaCalc(Re,kr.get(),dh);
+    const Z=cnt.reduce((s,[i,z])=>s+(parse(i.value)||0)*z,0)+(zx.get()||0);
+    const dR=la*le.get()/dh*pd,dZ=Z*pd,dK=[cf,cs,ca,co].reduce((s,o)=>s+(o.get()||0),0),dT=(dR+dZ+dK)*(1+(res.get()||0));
+    oDh.set(dh);ov.set(v);opd.set(pd);oRe.set(Re);oLa.set(la);oR.set(dR/le.get());oPR.set(dR);oZ.set(Z);oPZ.set(dZ);oPK.set(dK);oPT.set(dT);oPL.set(V*dT);oPW.set(V*dT/(eta.get()||1));
+    const dReq=Math.sqrt(4*V/(Math.PI*vz.get())),dn=DN.find(x=>x>=dReq*1000-0.5)||null;
+    oDN.set(dn?"DN "+dn+"  (v = "+fmt(Math.round(V/(Math.PI*(dn/1000)**2/4)*10)/10)+" m/s)":"> DN 1250");
+    // Hinweise
+    let t=[];
+    if(m==="haube"&&xx.get()>1.5*Math.sqrt(h.startsWith("schlitz")?sl.get()*0.1:ha.get()*hb.get()))t.push("Abstand x ist gross im Verhältnis zur Haube – Erfassung wird unsicher, Haube näher an die Quelle.");
+    if(vz.get()>=15&&v<vz.get()*0.85)t.push("Luftgeschwindigkeit unter der Transportgeschwindigkeit – Staub kann sich in der Leitung ablagern.");
+    if(v>25)t.push("Sehr hohe Luftgeschwindigkeit – Geräusch und Druckverlust prüfen.");
+    note.textContent=t.join(" ");
+    hint.textContent="Richtwerte Luftgeschwindigkeit: Komfortlüftung Hauptkanal 4–6 m/s, Abzweige 2–4 m/s · Rauch/Dämpfe 8–12 m/s · Staub/Späne 15–25 m/s (Transportgeschwindigkeit). Erfassungs- und ζ-Werte sind Richtwerte (VDI 2262 / ASHRAE), Haubenformeln nach Dalla Valle. Luft: ρ = "+fmt(Math.round(rho*1000)/1000)+" kg/m³ bei "+fmt(Math.round((T-273.15)*10)/10)+" °C.";
+  }
+  calc();return c;
+}
+
 /* ============ PDF-EXPORT (Bereich Berechnungen) ============ */
 const loadJs=src=>new Promise((ok,err)=>{if(document.querySelector('script[data-src="'+src+'"]'))return ok();const s=document.createElement("script");s.src=src;s.dataset.src=src;s.onload=ok;s.onerror=()=>err(new Error(src));document.head.append(s)});
 const imgData=src=>new Promise(ok=>{const i=new Image();i.onload=()=>{try{const c=document.createElement("canvas");c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext("2d").drawImage(i,0,0);ok(c.toDataURL("image/png"))}catch(e){ok(null)}};i.onerror=()=>ok(null);i.src=src});
@@ -483,7 +569,9 @@ function cardReport(card){
       if(a&&a.classList&&a.classList.contains("seg"))cur.rows.push([lab,val(a),""]);
       else if(a&&a.tagName==="SELECT"&&!b)cur.rows.push([lab,val(a),""]);
       else cur.rows.push([lab,val(a),val(b)]);
-      if(e.classList.contains("out"))cur.rows[cur.rows.length-1].res=1;continue}
+      if(e.classList.contains("out"))cur.rows[cur.rows.length-1].res=1;
+      else if(e.closest("details")&&a&&a.tagName==="INPUT"&&parse(a.value)===0)cur.rows.pop();
+      continue}
     if(e.children.length&&!["fig","f","note","hint","preset","grp"].some(k=>e.classList.contains(k))&&e.tagName!=="H3")walk(e);
   }};walk(card);
   return{title:card.dataset.pdf||card.querySelector("h3").textContent,group:(card.querySelector(".grp")||{}).textContent||"",formula:(card.querySelector(".f")||{}).textContent||"",
@@ -497,12 +585,12 @@ async function makePdf(card,meta){
   const now=new Date(),dstr=now.toLocaleDateString("de-CH")+" "+now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
   const logo=await imgData("icon-192.png");
   const head=()=>{doc.setFillColor(...NAVY);doc.rect(0,0,W,24,"F");if(logo)doc.addImage(logo,"PNG",M,4,16,16);
-    doc.setTextColor(255);doc.setFont("DV","bold");doc.setFontSize(14);doc.text(doc.splitTextToSize(R.title,130)[0],M+20,11.5);
+    doc.setTextColor(255);doc.setFont("DV","bold");let fs=14;doc.setFontSize(fs);while(doc.getTextWidth(R.title)>122&&fs>9){fs-=0.5;doc.setFontSize(fs)}doc.text(R.title,M+20,11.5);
     doc.setFont("DV","normal");doc.setFontSize(8.5);doc.text("re.lib · "+R.group,M+20,17.5);doc.text(dstr,W-M,17.5,{align:"right"});doc.text("re engineering solution",W-M,11.5,{align:"right"});
-    doc.setFillColor(...ORA);doc.rect(0,24,W,1.2,"F");y=33};
+    doc.setFillColor(...ORA);doc.rect(0,24,W,1.2,"F");y=32};
   const foot=()=>{doc.setFont("DV","normal");doc.setFontSize(7.5);doc.setTextColor(120);doc.setDrawColor(200);doc.line(M,284,W-M,284);
     doc.text("Erstellt mit re.lib"+(isBuilt?" v"+APP_VER:"")+" – Rechenwerte sind Richtwerte, Auslegung durch Fachperson prüfen.",M,288.5);doc.text("Seite "+page,W-M,288.5,{align:"right"})};
-  const need=h=>{if(y+h>280){foot();doc.addPage();page++;head()}};
+  const need=h=>{if(y+h>281){foot();doc.addPage();page++;head()}};
   head();
   // Projektangaben
   doc.setTextColor(30);doc.setFontSize(9.5);
@@ -514,11 +602,11 @@ async function makePdf(card,meta){
   if(R.formula){need(16);doc.setFont("DV","bold");doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text("Berechnungsgrundlage",M,y);y+=5;
     doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.splitTextToSize(R.formula,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.text(l,M,y);y+=4.1});y+=2}
   // Abschnitte
-  for(const s of R.secs){need(s.h==="Ergebnis"?Math.min(80,8+s.rows.length*5.5):14);doc.setFont("DV","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(s.h,M,y);doc.setDrawColor(...ORA);doc.setLineWidth(.5);doc.line(M,y+1.5,M+30,y+1.5);doc.setLineWidth(.2);y+=6;
-    s.rows.forEach((r,i)=>{need(5.4);if(r.res){doc.setFillColor(233,247,241);doc.rect(M,y-3.7,W-2*M,5.1,"F")}else if(i%2){doc.setFillColor(247,248,250);doc.rect(M,y-3.7,W-2*M,5.1,"F")}
+  for(const s of R.secs){need(s.h==="Ergebnis"?Math.min(50,8+s.rows.length*4.9):14);doc.setFont("DV","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(s.h,M,y);doc.setDrawColor(...ORA);doc.setLineWidth(.5);doc.line(M,y+1.5,M+30,y+1.5);doc.setLineWidth(.2);y+=5.3;
+    s.rows.forEach((r,i)=>{need(5.2);if(r.res){doc.setFillColor(233,247,241);doc.rect(M,y-3.6,W-2*M,4.9,"F")}else if(i%2){doc.setFillColor(247,248,250);doc.rect(M,y-3.6,W-2*M,4.9,"F")}
       doc.setFontSize(8.9);doc.setFont("DV","normal");doc.setTextColor(40);doc.text(doc.splitTextToSize(r[0],95)[0],M+2,y);
       doc.setFont("DV",r.res?"bold":"normal");doc.setTextColor(...(r.res?[13,110,79]:[20,20,20]));doc.text(String(r[1]),M+138,y,{align:"right"});
-      doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=5.1});y+=2.5}
+      doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=4.9});y+=2.5}
   if(R.note){need(12);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.splitTextToSize("Hinweis: "+R.note,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.text(l,M,y);y+=4.3});y+=2}
   if(R.hint){doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.splitTextToSize(R.hint,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.text(l,M,y);y+=4})}
   foot();
@@ -594,7 +682,7 @@ const TABS=["conv","mech","kaelte","calc","tab"];
 /* ============ INIT ============ */
 F.mech.forEach(d=>document.getElementById("g-mech").append(card(d)));
 const gk=document.getElementById("g-kaelte");gk.append(refCard());gk.append(glyCard());F.kaelte.forEach(d=>gk.append(card(d)));
-{const dc=dpCard();document.getElementById("g-calc").append(dc);addPdfBar(dc);}
+{const gc=document.getElementById("g-calc");const dc=dpCard();gc.append(dc);addPdfBar(dc);const vc=ventCard();gc.append(vc);addPdfBar(vc);}
 buildConv();buildTables();
 document.querySelectorAll(".search").forEach(s=>s.addEventListener("input",()=>{const q=s.value.toLowerCase().trim();
   document.querySelectorAll("#g-"+s.dataset.for+" .card").forEach(c=>c.classList.toggle("hide",q&&!q.split(/\s+/).every(w=>c.dataset.s.includes(w))))}));
