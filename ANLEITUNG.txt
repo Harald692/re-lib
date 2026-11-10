@@ -1,0 +1,39 @@
+re.lib – Konstrukteur-Bibliothek
+Echte Android-App (APK) und echte Windows-App (Setup.exe), beide mit Update-Knopf
+================================================================================
+
+ORDNER
+  www/       Programm (Formeln, Rechner, Tabellen) – gemeinsam für Android und Windows
+  desktop/   Windows-App (Electron, Installer + Auto-Update)
+  android    wird beim Bau automatisch erzeugt (Capacitor)
+  .github/workflows/main.yml   baut beide Apps auf GitHub
+
+EINMALIG EINRICHTEN
+1. Repository auf GitHub (z. B. "re-lib") auf ÖFFENTLICH stellen:
+   Settings > General > ganz unten "Danger Zone" > Change visibility > Public.
+   Grund: Die Apps holen ihre Updates ohne Anmeldung aus den Releases –
+   das geht nur bei öffentlichen Repositories. (GitHub Pages wird NICHT mehr gebraucht.)
+2. Kompletten Inhalt dieses Ordners hochladen (inkl. .github und desktop),
+   die alte Datei .github/workflows/main.yml dabei ersetzen.
+3. Actions > "re.lib bauen (Android + Windows)" läuft automatisch (ca. 8–10 Min.).
+   Ergebnis unter "Releases" (rechts auf der Repo-Seite), z. B. "re.lib 1.0.12":
+     reLib.apk                 → Android
+     reLib-Setup-1.0.12.exe    → Windows
+
+INSTALLIEREN
+Android:  reLib.apk herunterladen, antippen, "Aus dieser Quelle installieren" erlauben.
+Windows:  reLib-Setup-….exe ausführen. Beim ersten Mal zeigt Windows evtl.
+          "Der Computer wurde durch Windows geschützt" (App ist nicht kostenpflichtig signiert)
+          > "Weitere Informationen" > "Trotzdem ausführen".
+          re.lib erscheint im Startmenü und auf dem Desktop.
+
+UPDATES
+- Änderung hochladen → GitHub baut automatisch die neue Version.
+- In der App beim Start bzw. über "⟳ Updates" oben rechts:
+  Android: "Jetzt aktualisieren" – fertig, ohne Neuinstallation.
+           Wurden Android-Bausteine geändert, erscheint "APK herunterladen" (einmalig neu installieren).
+  Windows: "Jetzt aktualisieren" → lädt das Update → "Neu starten & installieren".
+
+PDF-EXPORT (Bereich "Berechnungen")
+  Windows: Speichern-Dialog (Standard: Dokumente), danach öffnet sich das PDF zum Drucken.
+  Android: Teilen-Menü > Drucken, OneDrive, Mail …

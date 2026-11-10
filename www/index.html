@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173a6b">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>re.lib – Konstrukteur-Bibliothek</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--fg:#1b2430;--mut:#5d6b7c;--line:#dde3ea;--acc:#1f5fa8;--acc2:#e8f0fa;--res:#0d6e4f;--resbg:#e9f7f1;--warn:#9a5b00}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1b222b;--fg:#e6ebf1;--mut:#98a5b5;--line:#2c3643;--acc:#6aa8f0;--acc2:#1e2c3d;--res:#5fd3a6;--resbg:#15302a;--warn:#f0b35a}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--fg);font-size:15px}
+header{background:#173a6b;color:#fff;padding:10px 16px 0;position:sticky;top:0;z-index:5}
+.hd{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.hd img{width:34px;height:34px;border-radius:7px}
+header h1{margin:0;font-size:18px;font-weight:600;letter-spacing:.3px;flex:1}
+header h1 span{opacity:.7;font-weight:400;font-size:13px;margin-left:6px}
+.updbtn{background:transparent;border:1px solid #5f7fa8;color:#dfe9f6;border-radius:6px;padding:6px 10px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+#updbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#173a6b;color:#fff;font-size:13.5px;font-weight:600;border-radius:8px;margin-bottom:12px}
+#updbar span{flex:1}
+#updbar .upd-go{border:0;background:#ef7d1f;color:#fff;font-weight:700;border-radius:5px;padding:7px 12px;font-size:13.5px;cursor:pointer}
+#updbar .upd-x{border:0;background:transparent;color:#cfd9e6;font-size:15px;cursor:pointer}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222c38;color:#fff;padding:9px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:20}
+#toast.on{opacity:1}
+.fig{margin:4px 0 8px;background:var(--bg);border-radius:8px;padding:4px;color:var(--fg)}
+.fig svg{display:block;width:100%;height:auto;max-height:120px}
+.fig .ln{stroke:currentColor;stroke-width:1.8;fill:none}
+.fig .lf{stroke:currentColor;stroke-width:1.6;fill:var(--acc2)}
+.fig .ac{stroke:#ef7d1f;stroke-width:2.2;fill:none}
+.fig .af{fill:#ef7d1f;stroke:none}
+.fig .dm{stroke:var(--mut);stroke-width:1;fill:none}
+.fig .cl{stroke:var(--mut);stroke-width:.9;fill:none;stroke-dasharray:8 3 2 3}
+.fig .dl{stroke:#ef7d1f;stroke-width:1.4;fill:none;stroke-dasharray:5 3}
+.fig .ht{stroke:var(--mut);stroke-width:1}
+.fig text{font:italic 600 12px system-ui,sans-serif;fill:currentColor;text-anchor:middle}
+.fig text.o{fill:#ef7d1f}
+nav{display:flex;gap:2px;overflow-x:auto}
+nav button{background:none;border:0;color:#cfe0f5;padding:10px 14px;font-size:14px;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap}
+nav button.on{color:#fff;border-bottom-color:#7fb8ff;font-weight:600}
+main{max-width:1100px;margin:0 auto;padding:14px}
+.search{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font-size:15px;margin-bottom:12px}
+.wide{grid-column:1/-1}
+.pdfbar{margin-top:14px;border-top:1px solid var(--line);padding-top:10px}
+.pdfin{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px}
+.pdfbtn{background:#ef7d1f;color:#fff;border:0;border-radius:7px;padding:9px 16px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+.pdfbtn:disabled{opacity:.7}
+@media (max-width:760px){.pdfin{grid-template-columns:1fr}}
+.sub{font-size:13px;font-weight:600;color:var(--acc);margin:12px 0 2px;border-top:1px solid var(--line);padding-top:8px}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:0 26px}
+.fit{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px 18px}
+.fit div{display:grid;grid-template-columns:minmax(0,1fr) 34px 56px;gap:6px;align-items:center;font-size:13px}
+.fit small{color:var(--mut);text-align:right}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;background:var(--bg);color:var(--fg);padding:7px 14px;cursor:pointer;font-size:13.5px}
+.seg button.on{background:var(--acc);color:#fff;font-weight:600}
+.txt{font-weight:600;color:var(--res);text-align:right;padding-right:4px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.card h3{margin:0 0 2px;font-size:15px}
+.card .f{font-family:Consolas,"Courier New",monospace;font-size:12.5px;color:var(--mut);margin-bottom:10px;white-space:pre-wrap}
+.grp{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--acc);margin-bottom:4px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 110px 96px;gap:6px;align-items:center;margin:5px 0}
+.row label{font-size:13.5px;overflow-wrap:anywhere;hyphens:auto}
+.row label small{color:var(--mut)}
+input,select{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--fg);font-size:14px}
+input{text-align:right;font-variant-numeric:tabular-nums}
+.row.out{background:var(--resbg);border-radius:6px;padding:3px 6px;margin:4px -6px}
+.row.out .v{text-align:right;font-weight:600;color:var(--res);font-variant-numeric:tabular-nums;padding-right:4px}
+.preset{margin:-2px 0 6px;display:grid;grid-template-columns:1fr 206px;gap:6px;align-items:center}
+.preset span{font-size:12px;color:var(--mut)}
+.note{font-size:12px;color:var(--warn);margin-top:6px}
+.conv{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+.convres{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.convres div{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;justify-content:space-between;gap:8px;cursor:pointer}
+.convres div b{font-variant-numeric:tabular-nums;color:var(--res)}
+.convres div.src{border-color:var(--acc);background:var(--acc2)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;background:var(--card);font-variant-numeric:tabular-nums}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:right}
+th{background:var(--acc2);text-align:center;font-weight:600}
+td:first-child,th:first-child{text-align:left}
+.tw{overflow-x:auto;margin-bottom:18px;border-radius:8px}
+h2{font-size:16px;margin:18px 0 8px}
+.hint{font-size:12.5px;color:var(--mut);margin:4px 0 12px}
+.hide{display:none!important}
+@media (max-width:600px){header h1 span{display:none}.row{grid-template-columns:minmax(0,1fr) 92px 84px}.conv{grid-template-columns:1fr}.grid{grid-template-columns:1fr}.preset{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd"><img src="icon-192.png" alt=""><h1>re.lib <span>Formeln · Einheiten · Kältetechnik</span></h1><button class="updbtn" id="updchk" type="button">⟳ Updates <small id="verlbl"></small></button></div>
+  <nav id="tabs">
+    <button data-t="conv" class="on">Umrechner</button>
+    <button data-t="mech">Mechanik</button>
+    <button data-t="kaelte">Kältetechnik</button>
+    <button data-t="calc">Berechnungen</button>
+    <button data-t="tab">Tabellen</button>
+  </nav>
+</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#ef7d1f"/></marker>
+  <marker id="dh" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,1 L10,5 L0,9" fill="none" stroke="#8a97a8" stroke-width="1.6"/></marker>
+</defs></svg>
+<div id="toast"></div>
+<main>
+  <div id="updslot"></div>
+  <section id="p-conv"></section>
+  <section id="p-mech" class="hide"><input class="search" placeholder="Formel suchen … (z. B. Biegung, Masse, Rohr)" data-for="mech"><div class="grid" id="g-mech"></div></section>
+  <section id="p-kaelte" class="hide"><input class="search" placeholder="Suchen … (z. B. COP, Taupunkt, Überhitzung)" data-for="kaelte"><div class="grid" id="g-kaelte"></div></section>
+  <section id="p-calc" class="hide"><div class="grid" id="g-calc"></div></section>
+  <section id="p-tab" class="hide"></section>
+</main>
+<script>
+"use strict";
+/* ============ EINHEITEN ============ */
+// Faktor = Wert in SI-Basiseinheit; Objekt {to,from} für Offset-Einheiten
+const Q = {
+ len:{n:"Länge",u:{"mm":1e-3,"µm":1e-6,"cm":1e-2,"dm":0.1,"m":1,"km":1e3,"in":0.0254,"ft":0.3048,"yd":0.9144,"mi":1609.344}},
+ area:{n:"Fläche",u:{"mm²":1e-6,"cm²":1e-4,"dm²":1e-2,"m²":1,"ha":1e4,"in²":6.4516e-4,"ft²":0.09290304}},
+ vol:{n:"Volumen",u:{"mm³":1e-9,"cm³":1e-6,"ml":1e-6,"l":1e-3,"dm³":1e-3,"m³":1,"in³":1.6387064e-5,"ft³":0.028316846592,"gal (US)":3.785411784e-3}},
+ mass:{n:"Masse",u:{"g":1e-3,"kg":1,"t":1e3,"lb":0.45359237,"oz":0.028349523125}},
+ force:{n:"Kraft",u:{"N":1,"kN":1e3,"MN":1e6,"daN":10,"kp":9.80665,"lbf":4.4482216152605}},
+ press:{n:"Druck / Spannung",u:{"Pa":1,"hPa":100,"kPa":1e3,"MPa":1e6,"N/mm²":1e6,"GPa":1e9,"mbar":100,"bar":1e5,"psi":6894.757293168,"ksi":6894757.293168,"atm":101325,"mmHg":133.322387415,"mWS":9806.65,"kp/cm²":98066.5}},
+ pabs:{n:"Druck abs./Überdruck",u:{"bar (abs)":1e5,"bar (ü)":{to:x=>x*1e5+101325,from:x=>(x-101325)/1e5},"kPa (abs)":1e3,"MPa (abs)":1e6,"psia":6894.757293168,"psig":{to:x=>x*6894.757293168+101325,from:x=>(x-101325)/6894.757293168}}},
+ torque:{n:"Drehmoment",u:{"Nm":1,"Nmm":1e-3,"kNm":1e3,"kpm":9.80665,"lbf·ft":1.3558179483314,"lbf·in":0.1129848290276}},
+ energy:{n:"Energie / Arbeit",u:{"J":1,"kJ":1e3,"MJ":1e6,"Wh":3600,"kWh":3.6e6,"MWh":3.6e9,"kcal":4186.8,"BTU":1055.05585262}},
+ power:{n:"Leistung",u:{"W":1,"kW":1e3,"MW":1e6,"PS":735.49875,"hp":745.69987158,"kcal/h":1.163,"BTU/h":0.29307107,"TR (Kältetonne)":3516.8528}},
+ temp:{n:"Temperatur",u:{"°C":{to:x=>x+273.15,from:x=>x-273.15},"K":1,"°F":{to:x=>(x-32)*5/9+273.15,from:x=>(x-273.15)*9/5+32}}},
+ dtemp:{n:"Temperaturdifferenz",u:{"K":1,"°C (Δ)":1,"°F (Δ)":5/9}},
+ vel:{n:"Geschwindigkeit",u:{"m/s":1,"mm/s":1e-3,"m/min":1/60,"km/h":1/3.6,"ft/min":0.00508,"ft/s":0.3048,"mph":0.44704,"kn":0.514444}},
+ rot:{n:"Drehzahl",u:{"1/min":1/60,"1/s":1,"rad/s":1/(2*Math.PI)}},
+ vflow:{n:"Volumenstrom",u:{"m³/h":1/3600,"m³/s":1,"l/s":1e-3,"l/min":1/60000,"l/h":1/3.6e6,"cfm":4.719474432e-4,"gpm (US)":6.30901964e-5}},
+ mflow:{n:"Massenstrom",u:{"kg/s":1,"kg/h":1/3600,"g/s":1e-3,"t/h":1/3.6,"lb/h":0.45359237/3600}},
+ dens:{n:"Dichte",u:{"kg/m³":1,"g/cm³":1e3,"kg/dm³":1e3,"t/m³":1e3,"lb/ft³":16.01846337}},
+ angle:{n:"Winkel",u:{"°":Math.PI/180,"rad":1,"gon":Math.PI/200,"′ (Minute)":Math.PI/10800}},
+ time:{n:"Zeit",u:{"s":1,"ms":1e-3,"min":60,"h":3600,"d":86400}},
+ inertia:{n:"Flächenträgheitsmoment",u:{"mm⁴":1e-12,"cm⁴":1e-8,"m⁴":1,"in⁴":4.162314256e-7}},
+ smod:{n:"Widerstandsmoment",u:{"mm³":1e-9,"cm³":1e-6,"m³":1,"in³":1.6387064e-5}},
+ cp:{n:"Spez. Wärmekapazität",u:{"kJ/(kg·K)":1e3,"J/(kg·K)":1,"kcal/(kg·K)":4186.8,"BTU/(lb·°F)":4186.8}},
+ enth:{n:"Spez. Enthalpie",u:{"kJ/kg":1e3,"J/kg":1,"BTU/lb":2326}},
+ uval:{n:"Wärmedurchgangskoeff.",u:{"W/(m²·K)":1,"kcal/(h·m²·K)":1.163,"BTU/(h·ft²·°F)":5.678263}},
+ linexp:{n:"Ausdehnungskoeff.",u:{"10⁻⁶/K":1e-6,"1/K":1}},
+ acc:{n:"Beschleunigung",u:{"m/s²":1,"g":9.80665,"ft/s²":0.3048}},
+ pct:{n:"Prozent",u:{"%":0.01,"–":1}},
+ num:{n:"Zahl",u:{"–":1}},
+ gpress:{n:"Luftdruck",u:{"hPa":100,"mbar":100,"kPa":1e3,"bar":1e5}},
+ hum:{n:"Feuchtegehalt",u:{"g/kg":1e-3,"kg/kg":1}},
+ visc:{n:"Dyn. Viskosität",u:{"mPa·s":1e-3,"cP":1e-3,"Pa·s":1,"µPa·s":1e-6}},
+ molm:{n:"Molmasse",u:{"g/mol":1e-3,"kg/kmol":1e-3,"kg/mol":1}},
+ dpl:{n:"Druckgefälle",u:{"Pa/m":1,"mbar/m":100,"mbar/100 m":1,"bar/100 m":1000,"kPa/m":1000}}
+};
+const toSI=(q,u,x)=>{const f=Q[q].u[u];return typeof f==="object"?f.to(x):x*f};
+const fromSI=(q,u,x)=>{const f=Q[q].u[u];return typeof f==="object"?f.from(x):x/f};
+const parse=s=>{s=String(s).trim().replace(/\s/g,"").replace(",",".");return s===""?NaN:Number(s)};
+const fmt=x=>{if(!isFinite(x))return "–";const a=Math.abs(x);
+  if(a!==0&&(a<1e-4||a>=1e9))return x.toExponential(4).replace(".",",");
+  return x.toLocaleString("de-CH",{maximumSignificantDigits:6});};
+const el=(t,a={},...c)=>{const e=document.createElement(t);for(const k in a){if(k==="class")e.className=a[k];else if(k.startsWith("on"))e.addEventListener(k.slice(2),a[k]);else e.setAttribute(k,a[k]);}c.forEach(x=>e.append(x));return e};
+const unitSel=(q,def)=>{const s=el("select");Object.keys(Q[q].u).forEach(u=>s.append(el("option",{value:u},u)));s.value=def||Object.keys(Q[q].u)[0];return s};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+
+/* ============ PRESETS ============ */
+const MAT_RHO=[["Stahl",7850],["Edelstahl 1.4301",7900],["Aluminium",2700],["Kupfer",8960],["Messing",8500],["Grauguss",7200],["Titan",4500],["POM",1410],["PA6",1140],["PE-HD",950]];
+const MAT_E=[["Stahl",210e9],["Edelstahl",200e9],["Aluminium",70e9],["Kupfer",120e9],["Messing",100e9],["Grauguss",110e9],["Titan",110e9]];
+const MAT_A=[["Stahl",12e-6],["Edelstahl 1.4301",16e-6],["Aluminium",23e-6],["Kupfer",17e-6],["Messing",19e-6],["Grauguss",10.5e-6],["Titan",8.6e-6],["POM",110e-6],["PA6",80e-6]];
+// Glykol-Wasser-Gemische (Vol.-%, Richtwerte bei ca. 0 °C): [Konz, Gefrierpunkt °C, ρ kg/m³, cp J/(kg·K)]
+const GLY={
+ "Ethylenglykol (MEG)":[[0,0,1000,4210],[10,-3.5,1014,4050],[20,-8,1029,3870],[30,-15,1045,3680],[40,-24,1060,3480],[50,-36,1075,3270],[60,-52,1090,3040]],
+ "Propylenglykol (MPG)":[[0,0,1000,4210],[10,-3,1010,4120],[20,-7,1020,4000],[30,-13,1030,3850],[40,-21,1040,3680],[50,-33,1047,3480],[60,-49,1055,3270]]
+};
+const FLUID_RHO=[["Wasser 10 °C",1000],["Wasser 40 °C",992],["Ethylenglykol 30 % (0 °C)",1045],["Ethylenglykol 40 % (0 °C)",1060],["Ethylenglykol 50 % (0 °C)",1075],["Propylenglykol 30 % (0 °C)",1030],["Propylenglykol 40 % (0 °C)",1040],["Propylenglykol 50 % (0 °C)",1047],["Luft 20 °C",1.2]];
+const FLUID_CP=[["Wasser",4190],["Ethylenglykol 30 %",3680],["Ethylenglykol 40 %",3480],["Ethylenglykol 50 %",3270],["Propylenglykol 30 %",3850],["Propylenglykol 40 %",3680],["Propylenglykol 50 %",3480],["Luft",1005]];
+
+/* ============ FORMELN ============
+ in: [id, Label, Größe, Std-Einheit, Std-Wert(in Std-Einheit), presets?]
+ out:[Label, Größe, Std-Einheit, fn(v)->SI] */
+const F={mech:[
+ {g:"Geometrie",t:"Kreis",f:"A = π·d²/4    U = π·d",in:[["d","Durchmesser d","len","mm",50]],out:[["Fläche A","area","mm²",v=>Math.PI*v.d**2/4],["Umfang U","len","mm",v=>Math.PI*v.d]]},
+ {g:"Geometrie",t:"Kreisring / Rohrquerschnitt",f:"A = π·(D² − d²)/4",in:[["D","Aussen-Ø D","len","mm",60],["d","Innen-Ø d","len","mm",50]],out:[["Fläche A","area","mm²",v=>Math.PI*(v.D**2-v.d**2)/4]]},
+ {g:"Geometrie",t:"Zylinder / Kugel Volumen",f:"V_Zyl = π·d²/4·h    V_Kugel = π·d³/6",in:[["d","Durchmesser d","len","mm",100],["h","Höhe h","len","mm",200]],out:[["Zylindervolumen","vol","l",v=>Math.PI*v.d**2/4*v.h],["Kugelvolumen (Ø d)","vol","l",v=>Math.PI*v.d**3/6]]},
+ {g:"Masse",t:"Masse aus Volumen",f:"m = V · ρ",in:[["V","Volumen V","vol","dm³",1],["r","Dichte ρ","dens","kg/m³",7850,MAT_RHO]],out:[["Masse m","mass","kg",v=>v.V*v.r]]},
+ {g:"Masse",t:"Masse Rundstab",f:"m = π·d²/4 · L · ρ",in:[["d","Durchmesser d","len","mm",40],["L","Länge L","len","mm",1000],["r","Dichte ρ","dens","kg/m³",7850,MAT_RHO]],out:[["Masse m","mass","kg",v=>Math.PI*v.d**2/4*v.L*v.r],["Metergewicht","mass","kg",v=>Math.PI*v.d**2/4*v.r]]},
+ {g:"Masse",t:"Masse Rohr",f:"m = π·(D² − (D−2s)²)/4 · L · ρ",in:[["D","Aussen-Ø D","len","mm",48.3],["s","Wandstärke s","len","mm",3.2],["L","Länge L","len","mm",1000],["r","Dichte ρ","dens","kg/m³",7850,MAT_RHO]],out:[["Masse m","mass","kg",v=>Math.PI*(v.D**2-(v.D-2*v.s)**2)/4*v.L*v.r],["Metergewicht","mass","kg",v=>Math.PI*(v.D**2-(v.D-2*v.s)**2)/4*v.r]]},
+ {g:"Masse",t:"Masse Blech / Flachstahl / Block",f:"m = a · b · t · ρ",in:[["a","Länge a","len","mm",1000],["b","Breite b","len","mm",500],["t","Dicke t","len","mm",5],["r","Dichte ρ","dens","kg/m³",7850,MAT_RHO]],out:[["Masse m","mass","kg",v=>v.a*v.b*v.t*v.r]]},
+ {g:"Masse",t:"Gewichtskraft",f:"F_G = m · g",in:[["m","Masse m","mass","kg",100],["g","Erdbeschl. g","acc","m/s²",9.81]],out:[["Gewichtskraft","force","N",v=>v.m*v.g]]},
+ {g:"Antrieb",t:"Leistung aus Drehmoment & Drehzahl",f:"P = M · 2π · n",in:[["M","Drehmoment M","torque","Nm",50],["n","Drehzahl n","rot","1/min",1450]],out:[["Leistung P","power","kW",v=>v.M*2*Math.PI*v.n]]},
+ {g:"Antrieb",t:"Drehmoment aus Leistung & Drehzahl",f:"M = P / (2π · n)",in:[["P","Leistung P","power","kW",7.5],["n","Drehzahl n","rot","1/min",1450]],out:[["Drehmoment M","torque","Nm",v=>v.P/(2*Math.PI*v.n)]]},
+ {g:"Antrieb",t:"Übersetzung (Zahnrad / Riemen)",f:"i = z₂/z₁ = n₁/n₂    M₂ = M₁ · i · η",in:[["z1","z₁ / d₁ (Antrieb)","num","–",20],["z2","z₂ / d₂ (Abtrieb)","num","–",60],["n1","Drehzahl n₁","rot","1/min",1450],["M1","Drehmoment M₁","torque","Nm",10],["eta","Wirkungsgrad η","pct","%",97]],out:[["Übersetzung i","num","–",v=>v.z2/v.z1],["Drehzahl n₂","rot","1/min",v=>v.n1*v.z1/v.z2],["Drehmoment M₂","torque","Nm",v=>v.M1*v.z2/v.z1*v.eta]]},
+ {g:"Antrieb",t:"Hubleistung",f:"P = m · g · v / η",in:[["m","Last m","mass","kg",500],["v","Hubgeschw. v","vel","m/min",10],["eta","Wirkungsgrad η","pct","%",85]],out:[["Benötigte Leistung","power","kW",v=>v.m*9.80665*v.v/v.eta]]},
+ {g:"Antrieb",t:"Kinetische / potentielle Energie",f:"E_kin = m·v²/2    E_pot = m·g·h",in:[["m","Masse m","mass","kg",100],["v","Geschwindigkeit v","vel","m/s",2],["h","Höhe h","len","m",1]],out:[["E_kin","energy","J",v=>v.m*v.v**2/2],["E_pot","energy","J",v=>v.m*9.80665*v.h]]},
+ {g:"Pneumatik / Hydraulik",t:"Zylinderkraft",f:"F_aus = p·π·D²/4    F_ein = p·π·(D²−d²)/4",in:[["p","Druck p","press","bar",6],["D","Kolben-Ø D","len","mm",50],["d","Stangen-Ø d","len","mm",20],["eta","Wirkungsgrad η","pct","%",90]],out:[["Kraft ausfahrend","force","N",v=>v.p*Math.PI*v.D**2/4*v.eta],["Kraft einfahrend","force","N",v=>v.p*Math.PI*(v.D**2-v.d**2)/4*v.eta]]},
+ {g:"Pneumatik / Hydraulik",t:"Strömungsgeschwindigkeit im Rohr",f:"v = V̇ / (π·d²/4)",in:[["V","Volumenstrom V̇","vflow","m³/h",10],["d","Innen-Ø d","len","mm",50]],out:[["Geschwindigkeit v","vel","m/s",v=>v.V/(Math.PI*v.d**2/4)]]},
+ {g:"Pneumatik / Hydraulik",t:"Benötigter Rohr-Innendurchmesser",f:"d = √(4·V̇ / (π·v))",in:[["V","Volumenstrom V̇","vflow","m³/h",10],["v","Zielgeschw. v","vel","m/s",1.5]],out:[["Innen-Ø d","len","mm",v=>Math.sqrt(4*v.V/(Math.PI*v.v))]]},
+ {g:"Querschnittswerte",t:"Rechteckquerschnitt",f:"I = b·h³/12    W = b·h²/6",in:[["b","Breite b","len","mm",40],["h","Höhe h (Biegerichtung)","len","mm",80]],out:[["Flächenträgheitsmoment I","inertia","cm⁴",v=>v.b*v.h**3/12],["Widerstandsmoment W","smod","cm³",v=>v.b*v.h**2/6]]},
+ {g:"Querschnittswerte",t:"Vollkreis (Welle)",f:"I = π·d⁴/64   W = π·d³/32   Wp = π·d³/16",in:[["d","Durchmesser d","len","mm",40]],out:[["Flächenträgheitsmoment I","inertia","cm⁴",v=>Math.PI*v.d**4/64],["Widerstandsmoment W","smod","cm³",v=>Math.PI*v.d**3/32],["Polares Wp (Torsion)","smod","cm³",v=>Math.PI*v.d**3/16]]},
+ {g:"Querschnittswerte",t:"Kreisring (Rohr)",f:"I = π·(D⁴−d⁴)/64    W = 2·I/D",in:[["D","Aussen-Ø D","len","mm",60],["d","Innen-Ø d","len","mm",50]],out:[["Flächenträgheitsmoment I","inertia","cm⁴",v=>Math.PI*(v.D**4-v.d**4)/64],["Widerstandsmoment W","smod","cm³",v=>Math.PI*(v.D**4-v.d**4)/(32*v.D)],["Polares Wp","smod","cm³",v=>Math.PI*(v.D**4-v.d**4)/(16*v.D)]]},
+ {g:"Festigkeit",t:"Biegespannung",f:"σ_b = M_b / W",in:[["M","Biegemoment M_b","torque","Nm",500],["W","Widerstandsmoment W","smod","cm³",10]],out:[["Biegespannung σ_b","press","N/mm²",v=>v.M/v.W]]},
+ {g:"Festigkeit",t:"Torsionsspannung",f:"τ_t = M_t / W_p",in:[["M","Torsionsmoment M_t","torque","Nm",200],["W","Polares Wp","smod","cm³",12.57]],out:[["Torsionsspannung τ_t","press","N/mm²",v=>v.M/v.W]]},
+ {g:"Festigkeit",t:"Zug / Druck & Längenänderung (Hooke)",f:"σ = F/A   ε = σ/E   ΔL = ε·L",in:[["F","Kraft F","force","kN",10],["A","Querschnitt A","area","mm²",100],["E","E-Modul","press","GPa",210,MAT_E],["L","Länge L","len","mm",1000]],out:[["Spannung σ","press","N/mm²",v=>v.F/v.A],["Dehnung ε","pct","%",v=>v.F/v.A/v.E],["Längenänderung ΔL","len","mm",v=>v.F/v.A/v.E*v.L]]},
+ {g:"Festigkeit",t:"Kragträger, Einzellast am Ende",f:"M_max = F·L    f = F·L³/(3·E·I)",in:[["F","Kraft F","force","N",1000],["L","Länge L","len","mm",500],["E","E-Modul","press","GPa",210,MAT_E],["I","Trägheitsmoment I","inertia","cm⁴",170.7]],out:[["Max. Moment M_max","torque","Nm",v=>v.F*v.L],["Durchbiegung f","len","mm",v=>v.F*v.L**3/(3*v.E*v.I)]]},
+ {g:"Festigkeit",t:"Träger auf 2 Stützen, Mittellast",f:"M_max = F·L/4    f = F·L³/(48·E·I)",in:[["F","Kraft F","force","N",5000],["L","Stützweite L","len","mm",1000],["E","E-Modul","press","GPa",210,MAT_E],["I","Trägheitsmoment I","inertia","cm⁴",170.7]],out:[["Max. Moment M_max","torque","Nm",v=>v.F*v.L/4],["Durchbiegung f","len","mm",v=>v.F*v.L**3/(48*v.E*v.I)]]},
+ {g:"Festigkeit",t:"Träger auf 2 Stützen, Streckenlast",f:"M_max = q·L²/8    f = 5·q·L⁴/(384·E·I)",in:[["q","Gesamtlast q·L","force","N",5000],["L","Stützweite L","len","mm",1000],["E","E-Modul","press","GPa",210,MAT_E],["I","Trägheitsmoment I","inertia","cm⁴",170.7]],out:[["Max. Moment M_max","torque","Nm",v=>v.q*v.L/8],["Durchbiegung f","len","mm",v=>5*v.q*v.L**3/(384*v.E*v.I)]]},
+ {g:"Fertigung",t:"Drehzahl aus Schnittgeschwindigkeit",f:"n = v_c / (π·d)    v_f = f·n",in:[["vc","Schnittgeschw. v_c","vel","m/min",200],["d","Werkzeug-/Werkstück-Ø d","len","mm",20],["f","Vorschub f (pro U.)","len","mm",0.1]],out:[["Drehzahl n","rot","1/min",v=>v.vc/(Math.PI*v.d)],["Vorschubgeschw. v_f","vel","mm/s",v=>v.f*v.vc/(Math.PI*v.d)]]},
+ {g:"Thermik",t:"Wärmeausdehnung",f:"ΔL = L · α · ΔT",in:[["L","Länge L","len","mm",1000],["a","Ausdehnungskoeff. α","linexp","10⁻⁶/K",12,MAT_A],["dT","Temperaturdiff. ΔT","dtemp","K",50]],out:[["Längenänderung ΔL","len","mm",v=>v.L*v.a*v.dT]]}
+],
+kaelte:[
+ {g:"Wärmeleistung",t:"Kälte-/Heizleistung Wasser / Sole",f:"Q̇ = V̇ · ρ · c_p · ΔT",in:[["V","Volumenstrom V̇","vflow","m³/h",5],["r","Dichte ρ","dens","kg/m³",1000,FLUID_RHO],["c","Spez. Wärmekap. c_p","cp","kJ/(kg·K)",4.19,FLUID_CP],["dT","Spreizung ΔT","dtemp","K",5]],out:[["Leistung Q̇","power","kW",v=>v.V*v.r*v.c*v.dT],["Massenstrom ṁ","mflow","kg/h",v=>v.V*v.r]]},
+ {g:"Wärmeleistung",t:"Erforderlicher Volumenstrom",f:"V̇ = Q̇ / (ρ · c_p · ΔT)",in:[["P","Leistung Q̇","power","kW",30],["r","Dichte ρ","dens","kg/m³",1000,FLUID_RHO],["c","Spez. Wärmekap. c_p","cp","kJ/(kg·K)",4.19,FLUID_CP],["dT","Spreizung ΔT","dtemp","K",5]],out:[["Volumenstrom V̇","vflow","m³/h",v=>v.P/(v.r*v.c*v.dT)],["Massenstrom ṁ","mflow","kg/h",v=>v.P/(v.c*v.dT)]]},
+ {g:"Wärmeleistung",t:"Luftseitige Leistung (sensibel)",f:"Q̇ = V̇ · ρ · c_p · ΔT   (ρ≈1,2 kg/m³)",in:[["V","Luftvolumenstrom V̇","vflow","m³/h",3000],["r","Dichte ρ","dens","kg/m³",1.2],["c","c_p Luft","cp","kJ/(kg·K)",1.005],["dT","ΔT Luft","dtemp","K",8]],out:[["Leistung Q̇","power","kW",v=>v.V*v.r*v.c*v.dT]]},
+ {g:"Kreisprozess",t:"Kreisprozess aus Enthalpien",f:"Q̇₀ = ṁ·(h₁−h₄)   P = ṁ·(h₂−h₁)   Q̇c = ṁ·(h₂−h₃)\nh₄ = h₃ (Drosselung)",in:[["m","Kältemittel-Massenstrom ṁ","mflow","kg/h",300],["h1","h₁ Verdichtereintritt","enth","kJ/kg",400],["h2","h₂ Verdichteraustritt","enth","kJ/kg",440],["h3","h₃ Verflüssigeraustritt","enth","kJ/kg",250]],out:[["Kälteleistung Q̇₀","power","kW",v=>v.m*(v.h1-v.h3)],["Verdichterleistung P","power","kW",v=>v.m*(v.h2-v.h1)],["Verflüssigerleistung Q̇c","power","kW",v=>v.m*(v.h2-v.h3)],["EER / COP Kälte","num","–",v=>(v.h1-v.h3)/(v.h2-v.h1)]]},
+ {g:"Kreisprozess",t:"Leistungszahl EER / COP",f:"EER = Q̇₀ / P_el    COP_Heiz = (Q̇₀ + P_el) / P_el",in:[["Q","Kälteleistung Q̇₀","power","kW",20],["P","El. Leistung P_el","power","kW",6]],out:[["EER (Kälte)","num","–",v=>v.Q/v.P],["COP (Heizen)","num","–",v=>(v.Q+v.P)/v.P],["Abwärme Q̇c","power","kW",v=>v.Q+v.P]]},
+ {g:"Kreisprozess",t:"Carnot-Leistungszahl",f:"ε_K = T₀/(Tc−T₀)    ε_WP = Tc/(Tc−T₀)",in:[["T0","Verdampfungstemp. t₀","temp","°C",-10],["Tc","Verflüssigungstemp. tc","temp","°C",40],["g","Gütegrad (real/Carnot)","pct","%",50]],out:[["ε Carnot Kälte","num","–",v=>v.T0/(v.Tc-v.T0)],["ε Carnot Wärmepumpe","num","–",v=>v.Tc/(v.Tc-v.T0)],["EER real geschätzt","num","–",v=>v.g*v.T0/(v.Tc-v.T0)]]},
+ {g:"Wärmeübertragung",t:"Wärmeübertrager mit log. Temperaturdifferenz",f:"ΔT_m = (ΔT_a − ΔT_b) / ln(ΔT_a/ΔT_b)    Q̇ = k·A·ΔT_m",in:[["k","Wärmedurchgang k","uval","W/(m²·K)",500],["A","Fläche A","area","m²",10],["a","ΔT Eintrittsseite","dtemp","K",10],["b","ΔT Austrittsseite","dtemp","K",4]],out:[["ΔT_m (log.)","dtemp","K",v=>Math.abs(v.a-v.b)<1e-9?v.a:(v.a-v.b)/Math.log(v.a/v.b)],["Leistung Q̇","power","kW",v=>v.k*v.A*(Math.abs(v.a-v.b)<1e-9?v.a:(v.a-v.b)/Math.log(v.a/v.b))]]},
+ {g:"Wärmeübertragung",t:"Transmission Wand / Kühlraum",f:"Q̇ = U · A · ΔT",in:[["U","U-Wert","uval","W/(m²·K)",0.25],["A","Fläche A","area","m²",80],["dT","Temperaturdiff. ΔT","dtemp","K",30]],out:[["Wärmestrom Q̇","power","W",v=>v.U*v.A*v.dT],["pro Tag","energy","kWh",v=>v.U*v.A*v.dT*86400]]},
+ {g:"Feuchte Luft",t:"Taupunkt & Feuchtegehalt (Magnus)",f:"p_s = 6,112·e^(17,62·t/(243,12+t))  hPa\nx = 0,622 · p_d / (p − p_d)",in:[["T","Lufttemperatur t","temp","°C",24],["phi","Rel. Feuchte φ","pct","%",50],["p","Luftdruck p","gpress","hPa",1013.25]],out:[["Taupunkt t_d","temp","°C",v=>{const t=v.T-273.15,g=Math.log(v.phi)+17.62*t/(243.12+t);return 243.12*g/(17.62-g)+273.15}],["Feuchtegehalt x","hum","g/kg",v=>{const t=v.T-273.15,pd=v.phi*611.2*Math.exp(17.62*t/(243.12+t));return 0.622*pd/(v.p-pd)}],["Enthalpie h (1+x)","enth","kJ/kg",v=>{const t=v.T-273.15,pd=v.phi*611.2*Math.exp(17.62*t/(243.12+t)),x=0.622*pd/(v.p-pd);return (1.006*t+x*(2501+1.86*t))*1000}]]},
+ {g:"Rohrleitung",t:"Geschwindigkeit in Kältemittel-/Wasserleitung",f:"v = V̇ / (π·d_i²/4)   (V̇ = ṁ/ρ)",in:[["m","Massenstrom ṁ","mflow","kg/h",300],["r","Dichte ρ","dens","kg/m³",20],["d","Innen-Ø d_i","len","mm",16]],out:[["Volumenstrom V̇","vflow","m³/h",v=>v.m/v.r],["Geschwindigkeit v","vel","m/s",v=>v.m/v.r/(Math.PI*v.d**2/4)]]}
+]};
+
+/* ============ KÄLTEMITTEL ============ */
+// Sättigungsdruck bar abs bei -40..+50 °C (Richtwerte; zeotrope Gemische: Taupunkt)
+const RT=[-40,-30,-20,-10,0,10,20,30,40,50];
+const REF={
+ "R134a":{p:[0.51,0.84,1.33,2.01,2.93,4.15,5.72,7.70,10.17,13.18],gwp:1430,cls:"A1",nbp:-26.1,tc:101.1},
+ "R32":{p:[1.77,2.73,4.06,5.82,8.13,11.07,14.75,19.28,24.78,31.4],gwp:675,cls:"A2L",nbp:-51.7,tc:78.1},
+ "R410A":{p:[1.75,2.70,4.00,5.73,7.98,10.86,14.45,18.88,24.21,30.6],gwp:2088,cls:"A1",nbp:-51.4,tc:71.3},
+ "R290 (Propan)":{p:[1.11,1.68,2.45,3.45,4.74,6.36,8.36,10.79,13.69,17.13],gwp:3,cls:"A3",nbp:-42.1,tc:96.7},
+ "R600a (Isobutan)":{p:[0.29,0.47,0.72,1.08,1.57,2.21,3.02,4.04,5.30,6.84],gwp:3,cls:"A3",nbp:-11.7,tc:134.7},
+ "R1234yf":{p:[0.63,0.99,1.51,2.22,3.16,4.39,5.92,7.83,10.18,13.03],gwp:"<1",cls:"A2L",nbp:-29.5,tc:94.7},
+ "R404A":{p:[1.32,2.04,3.03,4.35,6.08,8.30,11.00,14.30,18.20,22.9],gwp:3922,cls:"A1",nbp:-46.2,tc:72.1},
+ "R717 (Ammoniak)":{p:[0.72,1.20,1.90,2.91,4.29,6.15,8.57,11.67,15.55,20.33],gwp:0,cls:"B2L",nbp:-33.3,tc:132.3},
+ "R744 (CO₂)":{p:[10.05,14.28,19.70,26.49,34.85,45.02,57.29,72.14,null,null],gwp:1,cls:"A1",nbp:-78.4,tc:31.0}
+};
+function satP(r,t){const d=REF[r].p;const pts=RT.map((T,i)=>[T,d[i]]).filter(x=>x[1]);
+  if(t<pts[0][0]||t>pts[pts.length-1][0])return NaN;
+  for(let i=0;i<pts.length-1;i++){const[a,pa]=pts[i],[b,pb]=pts[i+1];if(t>=a&&t<=b){const f=(t-a)/(b-a);return Math.exp(Math.log(pa)+f*(Math.log(pb)-Math.log(pa)))}}return NaN}
+function satT(r,p){const d=REF[r].p;const pts=RT.map((T,i)=>[T,d[i]]).filter(x=>x[1]);
+  if(p<pts[0][1]||p>pts[pts.length-1][1])return NaN;
+  for(let i=0;i<pts.length-1;i++){const[a,pa]=pts[i],[b,pb]=pts[i+1];if(p>=pa&&p<=pb){const f=(Math.log(p)-Math.log(pa))/(Math.log(pb)-Math.log(pa));return a+f*(b-a)}}return NaN}
+
+/* ============ SKIZZEN (SVG) ============ */
+const sv=(b)=>`<svg viewBox="0 0 260 110" xmlns="http://www.w3.org/2000/svg">${b}</svg>`;
+const ln=(a,b,c,d,k="ln")=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="${k}"/>`;
+const pa=(d,k="ln")=>`<path d="${d}" class="${k}"/>`;
+const rc=(x,y,w,h,k="ln")=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" class="${k}"/>`;
+const ci=(x,y,r,k="ln")=>`<circle cx="${x}" cy="${y}" r="${r}" class="${k}"/>`;
+const el2=(x,y,rx,ry,k="ln")=>`<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" class="${k}"/>`;
+const tx=(x,y,t,o)=>`<text x="${x}" y="${y}"${o?' class="o"':""}>${t}</text>`;
+const dim=(a,b,c,d,t,x,y)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="dm" marker-start="url(#dh)" marker-end="url(#dh)"/>`+tx(x,y,t);
+const fa=(a,b,c,d,t,x,y)=>`<line x1="${a}" y1="${b}" x2="${c}" y2="${d}" class="ac" marker-end="url(#ah)"/>`+(t?tx(x,y,t,1):"");
+const hatch=(x,y1,y2)=>{let s=ln(x,y1,x,y2);for(let y=y1;y<y2;y+=7)s+=`<line x1="${x}" y1="${y+7}" x2="${x-7}" y2="${y}" class="ht"/>`;return s};
+const sup=(x,y)=>pa(`M${x},${y} l-8,14 h16 z`)+ln(x-11,y+17,x+11,y+17,"dm");
+const marc=(cx,cy,r,a0,a1)=>{const p=a=>[cx+r*Math.cos(a*Math.PI/180),cy+r*Math.sin(a*Math.PI/180)];const[x0,y0]=p(a0),[x1,y1]=p(a1);return `<path d="M${x0},${y0} A${r},${r} 0 1 1 ${x1},${y1}" class="ac" marker-end="url(#ah)"/>`};
+const gear=(cx,cy,r,n)=>{let d="";for(let i=0;i<n*2;i++){const a=i*Math.PI/n,a2=(i+1)*Math.PI/n,rr=i%2?r:r+5;d+=(i?"L":"M")+(cx+rr*Math.cos(a)).toFixed(1)+","+(cy+rr*Math.sin(a)).toFixed(1)+"L"+(cx+rr*Math.cos(a2)).toFixed(1)+","+(cy+rr*Math.sin(a2)).toFixed(1)}return pa(d+"Z","lf")+ci(cx,cy,4)};
+const tube=(x,y,l,r,k="lf")=>pa(`M${x},${y-r} H${x+l} A${r/3},${r} 0 0 1 ${x+l},${y+r} H${x} Z`,k)+el2(x,y,r/3,r,k);
+const FIG={
+ "Kreis":sv(ci(130,55,42,"lf")+ln(78,55,182,55,"cl")+ln(130,5,130,105,"cl")+dim(88,55,172,55,"","",0)+tx(112,50,"d")+tx(195,30,"U")+pa("M160,22 A42,42 0 0 1 172,40","ac")),
+ "Kreisring / Rohrquerschnitt":sv(ci(130,55,44,"lf")+`<circle cx="130" cy="55" r="32" style="fill:var(--card)" class="ln"/>`+ln(80,55,180,55,"cl")+ln(130,5,130,105,"cl")+dim(86,96,174,96,"",0,0)+tx(130,108,"D")+dim(98,55,162,55,"",0,0)+tx(115,50,"d")),
+ "Zylinder / Kugel Volumen":sv(pa("M40,22 V88 A30,9 0 0 0 100,88 V22","lf")+el2(70,22,30,9,"lf")+dim(40,104,100,104,"",0,0)+tx(70,100,"d")+dim(112,22,112,88,"",0,0)+tx(122,58,"h")+ci(190,55,40,"lf")+el2(190,55,40,11,"dm")+dim(150,55,230,55,"",0,0)+tx(190,50,"d")),
+ "Masse aus Volumen":sv(pa("M80,40 L120,22 L200,22 L160,40 Z","lf")+pa("M160,40 L200,22 V72 L160,90 Z","lf")+rc(80,40,80,50,"lf")+tx(120,70,"V, ρ")+fa(230,40,230,95,"m",242,68)),
+ "Masse Rundstab":sv(tube(30,55,190,22)+ln(20,55,240,55,"cl")+dim(30,98,220,98,"",0,0)+tx(125,95,"L")+dim(14,33,14,77,"",0,0)+tx(6,60,"d")),
+ "Masse Rohr":sv(tube(30,55,190,26)+el2(30,55,6,18,"ln")+pa("M30,37 H220 M30,73 H220","dm")+ln(20,55,240,55,"cl")+dim(30,102,220,102,"",0,0)+tx(125,99,"L")+dim(14,29,14,81,"",0,0)+tx(6,60,"D")+tx(245,40,"s")+ln(236,40,224,32,"dm")),
+ "Masse Blech / Flachstahl / Block":sv(pa("M40,70 L80,40 H230 L190,70 Z","lf")+pa("M40,70 V80 H190 V70 M190,80 L230,50 V40","lf")+dim(40,92,190,92,"",0,0)+tx(115,105,"a")+dim(196,86,236,56,"",0,0)+tx(226,80,"b")+tx(30,80,"t")),
+ "Gewichtskraft":sv(rc(95,15,70,45,"lf")+tx(130,43,"m")+fa(130,60,130,104,"F_G",160,95)+ln(60,62,200,62,"cl")),
+ "Leistung aus Drehmoment & Drehzahl":sv(tube(40,55,170,14)+ln(30,55,230,55,"cl")+marc(130,55,30,200,150)+tx(130,16,"M, n",1)+tx(225,30,"P")),
+ "Drehmoment aus Leistung & Drehzahl":sv(tube(40,55,170,14)+ln(30,55,230,55,"cl")+marc(130,55,30,200,150)+tx(130,16,"M",1)+tx(225,30,"P, n")),
+ "Übersetzung (Zahnrad / Riemen)":sv(gear(80,58,22,10)+gear(162,58,48,22)+tx(80,62,"z₁")+tx(162,62,"z₂")+marc(80,58,34,200,140)+tx(36,18,"n₁, M₁",1)+tx(230,14,"n₂, M₂"))
+};
+Object.assign(FIG,{
+ "Hubleistung":sv(ci(130,22,14,"lf")+ln(30,8,230,8,"ln")+ln(130,8,130,22)+ln(144,22,144,62)+ln(116,22,60,90,"dm")+rc(122,62,44,32,"lf")+tx(144,83,"m")+fa(190,92,190,56,"v",202,76)+tx(60,104,"Motor")),
+ "Kinetische / potentielle Energie":sv(ln(20,96,240,96)+ci(80,40,14,"lf")+tx(80,44,"m")+fa(98,40,150,40,"v",125,33)+dim(40,40,40,96,"",0,0)+tx(30,72,"h")+ln(40,40,66,40,"dm")),
+ "Zylinderkraft":sv(rc(30,30,130,50,"lf")+rc(92,33,12,44,"ln")+rc(104,49,120,12,"lf")+tx(60,60,"p")+fa(226,55,256,55,"",0,0)+tx(240,46,"F",1)+dim(20,30,20,80,"",0,0)+tx(10,58,"D")+tx(180,74,"d")+ln(30,30,30,80)),
+ "Strömungsgeschwindigkeit im Rohr":sv(pa("M20,30 H240 M20,80 H240")+ln(20,55,240,55,"cl")+fa(70,55,180,55,"v",125,48)+dim(210,30,210,80,"",0,0)+tx(222,58,"d")+tx(40,20,"V̇")),
+ "Benötigter Rohr-Innendurchmesser":sv(pa("M20,30 H240 M20,80 H240")+ln(20,55,240,55,"cl")+fa(70,55,180,55,"v",125,48)+dim(210,30,210,80,"",0,0)+tx(222,58,"d ?",1)+tx(40,20,"V̇")),
+ "Rechteckquerschnitt":sv(rc(100,10,60,90,"lf")+ln(80,55,180,55,"cl")+tx(190,58,"y")+dim(100,106,160,106,"",0,0)+tx(130,104,"b")+dim(80,10,80,100,"",0,0)+tx(70,58,"h")+fa(215,20,215,90,"M_b",235,58)),
+ "Vollkreis (Welle)":sv(ci(130,55,40,"lf")+ln(80,55,180,55,"cl")+ln(130,8,130,102,"cl")+dim(90,55,170,55,"",0,0)+tx(112,50,"d")),
+ "Kreisring (Rohr)":sv(ci(130,55,44,"lf")+`<circle cx="130" cy="55" r="32" style="fill:var(--card)" class="ln"/>`+ln(80,55,180,55,"cl")+ln(130,5,130,105,"cl")+dim(86,98,174,98,"",0,0)+tx(130,109,"D")+dim(98,55,162,55,"",0,0)+tx(115,50,"d")),
+ "Biegespannung":sv(rc(40,42,180,26,"lf")+ln(30,55,230,55,"cl")+marc(40,55,22,60,300)+`<path d="M220,77 A22,22 0 1 1 220,33" class="ac" marker-end="url(#ah)"/>`+tx(130,30,"σ_b = M_b / W")+tx(18,20,"M_b",1)),
+ "Torsionsspannung":sv(tube(40,55,170,16)+ln(30,55,230,55,"cl")+marc(60,55,26,210,150)+`<path d="M216,29 A26,26 0 1 1 216,81" class="ac" marker-end="url(#ah)"/>`+tx(130,22,"τ_t",1)+tx(30,22,"M_t",1)),
+ "Zug / Druck & Längenänderung (Hooke)":sv(rc(50,42,150,24,"lf")+pa("M200,42 H215 V66 H200","dl")+fa(50,54,12,54,"F",22,46)+fa(215,54,253,54,"F",240,46)+dim(50,88,200,88,"",0,0)+tx(125,84,"L")+dim(200,88,215,88,"",0,0)+tx(214,104,"ΔL")+tx(125,58,"A, E")),
+ "Kragträger, Einzellast am Ende":sv(hatch(40,20,95)+rc(40,40,180,14,"lf")+pa("M40,54 Q160,58 220,74","dl")+fa(220,5,220,38,"F",232,20)+dim(40,100,220,100,"",0,0)+tx(130,96,"L")+dim(236,47,236,74,"",0,0)+tx(248,66,"f")),
+ "Träger auf 2 Stützen, Mittellast":sv(rc(30,40,200,12,"lf")+sup(40,52)+sup(220,52)+pa("M40,52 Q130,82 220,52","dl")+fa(130,5,130,38,"F",142,20)+dim(40,98,220,98,"",0,0)+tx(130,95,"L")+tx(142,78,"f")),
+ "Träger auf 2 Stützen, Streckenlast":sv(rc(30,40,200,12,"lf")+sup(40,52)+sup(220,52)+pa("M40,52 Q130,82 220,52","dl")+[50,74,98,122,146,170,194,214].map(x=>fa(x,14,x,38)).join("")+ln(50,14,214,14,"ac")+tx(130,10,"q",1)+dim(40,98,220,98,"",0,0)+tx(130,95,"L")),
+ "Drehzahl aus Schnittgeschwindigkeit":sv(hatch(30,20,90)+tube(30,55,150,26)+ln(20,55,230,55,"cl")+pa("M150,82 l20,22 h20 l-22,-22 z","lf")+marc(105,55,36,250,190)+tx(105,12,"n",1)+fa(205,30,205,74,"v_c",225,52)+tx(190,104,"f")),
+ "Wärmeausdehnung":sv(rc(40,40,160,26,"lf")+pa("M200,40 H222 V66 H200","dl")+hatch(40,25,85)+dim(40,88,200,88,"",0,0)+tx(120,84,"L")+dim(200,88,222,88,"",0,0)+tx(214,104,"ΔL")+tx(120,30,"α, ΔT"))
+});
+
+/* ============ RENDER FORMELKARTE ============ */
+function card(def){
+  const c=el("div",{class:"card"});c.dataset.s=(def.g+" "+def.t+" "+def.f).toLowerCase();
+  c.append(el("div",{class:"grp"},def.g),el("h3",{},def.t));
+  if(FIG[def.t]){const fg=el("div",{class:"fig"});fg.innerHTML=FIG[def.t];c.append(fg);}
+  c.append(el("div",{class:"f"},def.f));
+  const ins={};
+  def.in.forEach(([id,lab,q,u,val,pre])=>{
+    const inp=el("input",{inputmode:"decimal",value:String(val).replace(".",",")});const us=unitSel(q,u);
+    ins[id]={inp,us,q};
+    c.append(el("div",{class:"row"},el("label",{},lab),inp,us));
+    us.addEventListener("change",()=>{});
+    if(pre){const ps=el("select");ps.append(el("option",{value:""},"Vorlage wählen …"));pre.forEach(([n,v])=>ps.append(el("option",{value:v},n)));
+      ps.addEventListener("change",()=>{if(ps.value==="")return;inp.value=fmt(fromSI(q,us.value,Number(ps.value)));calc();});
+      c.append(el("div",{class:"preset"},el("span",{},""),ps));}
+  });
+  const outs=def.out.map(([lab,q,u,fn])=>{const v=el("div",{class:"v"},"–");const us=unitSel(q,u);
+    c.append(el("div",{class:"row out"},el("label",{},lab),v,us));us.addEventListener("change",calc);return{v,us,q,fn}});
+  // Einheitwechsel am Eingang: Wert mit umrechnen
+  Object.values(ins).forEach(o=>{let last=o.us.value;o.us.addEventListener("change",()=>{const x=parse(o.inp.value);if(isFinite(x))o.inp.value=fmt(fromSI(o.q,o.us.value,toSI(o.q,last,x))).replace(/’|'/g,"");last=o.us.value;calc();});o.inp.addEventListener("input",calc)});
+  function calc(){const v={};let ok=true;for(const k in ins){const x=parse(ins[k].inp.value.replace(/[’']/g,""));if(!isFinite(x))ok=false;v[k]=toSI(ins[k].q,ins[k].us.value,x)}
+    outs.forEach(o=>{o.v.textContent=ok?fmt(fromSI(o.q,o.us.value,o.fn(v))):"–"})}
+  calc();return c;
+}
+
+/* ============ SPEZIAL: Kältemittel P/T ============ */
+function refCard(){
+  const c=el("div",{class:"card"});c.dataset.s="kältemittel druck temperatur sättigung überhitzung unterkühlung manometer r134a r32 r410a r290 r744 co2 ammoniak";
+  c.append(el("div",{class:"grp"},"Kältemittel"),el("h3",{},"Druck ↔ Sättigungstemperatur, Überhitzung / Unterkühlung"),
+    el("div",{class:"f"},"Überhitzung = t_Saug − t₀(p_Saug)\nUnterkühlung = tc(p_HD) − t_Flüssig"));
+  const rs=el("select");Object.keys(REF).forEach(k=>rs.append(el("option",{value:k},k)));
+  c.append(el("div",{class:"row"},el("label",{},"Kältemittel"),rs));rs.style.gridColumn="2 / 4";
+  const pi=el("input",{inputmode:"decimal",value:"2"}),pu=unitSel("pabs","bar (ü)");
+  c.append(el("div",{class:"row"},el("label",{},"Gemessener Druck p"),pi,pu));
+  const ti=el("input",{inputmode:"decimal",value:"5"}),tu=unitSel("temp","°C");
+  c.append(el("div",{class:"row"},el("label",{},"Gemessene Rohrtemp. t"),ti,tu));
+  const vT=el("div",{class:"v"}),uT=unitSel("temp","°C"),vSH=el("div",{class:"v"}),vSC=el("div",{class:"v"});
+  c.append(el("div",{class:"row out"},el("label",{},"Sättigungstemperatur"),vT,uT),
+           el("div",{class:"row out"},el("label",{},"Überhitzung (Saugseite)"),vSH,el("span",{},"K")),
+           el("div",{class:"row out"},el("label",{},"Unterkühlung (HD-Seite)"),vSC,el("span",{},"K")));
+  c.append(el("h3",{style:"margin-top:12px"},"Temperatur → Sättigungsdruck"));
+  const t2=el("input",{inputmode:"decimal",value:"0"}),t2u=unitSel("temp","°C");
+  c.append(el("div",{class:"row"},el("label",{},"Sättigungstemp."),t2,t2u));
+  const vP=el("div",{class:"v"}),uP=unitSel("pabs","bar (ü)");
+  c.append(el("div",{class:"row out"},el("label",{},"Sättigungsdruck"),vP,uP));
+  const note=el("div",{class:"note"});c.append(note);
+  c.append(el("div",{class:"hint"},"Richtwerte aus interpolierter Dampfdrucktabelle (−40…+50 °C, Abweichung ca. ±1–2 %). Für zeotrope Gemische Taupunkt. Für Abnahme/Auslegung Herstellerdaten bzw. CoolPack/RefProp verwenden."));
+  function calc(){const r=rs.value;const p=toSI("pabs",pu.value,parse(pi.value))/1e5;const ts=satT(r,p);
+    const t=toSI("temp",tu.value,parse(ti.value))-273.15;
+    vT.textContent=fmt(fromSI("temp",uT.value,ts+273.15));vSH.textContent=fmt(t-ts);vSC.textContent=fmt(ts-t);
+    const ps=satP(r,toSI("temp",t2u.value,parse(t2.value))-273.15)*1e5;vP.textContent=fmt(fromSI("pabs",uP.value,ps));
+    note.textContent=(isNaN(ts)||isNaN(ps))?"Wert ausserhalb des Tabellenbereichs (−40 … +50 °C"+(r.startsWith("R744")?", CO₂ max. +30 °C":"")+").":""}
+  [rs,pi,pu,ti,tu,uT,t2,t2u,uP].forEach(e=>{e.addEventListener("input",calc);e.addEventListener("change",calc)});
+  calc();return c;
+}
+
+/* ============ SPEZIAL: Glykol-Wasser ============ */
+function gInterp(tab,col,x,keyCol=0){for(let i=0;i<tab.length-1;i++){const a=tab[i],b=tab[i+1];const lo=Math.min(a[keyCol],b[keyCol]),hi=Math.max(a[keyCol],b[keyCol]);
+  if(x>=lo&&x<=hi){const f=(x-a[keyCol])/(b[keyCol]-a[keyCol]);return a[col]+f*(b[col]-a[col])}}return NaN}
+function glyCard(){
+  const c=el("div",{class:"card"});c.dataset.s="glykol glycol sole frostschutz ethylenglykol propylenglykol gefrierpunkt 50% wasser gemisch mischung";
+  c.append(el("div",{class:"grp"},"Sole / Glykol-Wasser"),el("h3",{},"Glykol-Wasser-Gemisch (bis 60 %)"),
+   el("div",{class:"f"},"Stoffwerte bei ca. 0 °C, Konzentration in Vol.-%\nLeistungsfaktor = (ρ·c_p)_Gemisch / (ρ·c_p)_Wasser"));
+  const ms=el("select");Object.keys(GLY).forEach(k=>ms.append(el("option",{value:k},k)));
+  c.append(el("div",{class:"row"},el("label",{},"Glykol"),ms));ms.style.gridColumn="2 / 4";
+  const ki=el("input",{inputmode:"decimal",value:"50"});
+  c.append(el("div",{class:"row"},el("label",{},"Konzentration"),ki,el("span",{},"Vol.-%")));
+  const vF=el("div",{class:"v"}),uF=unitSel("temp","°C"),vR=el("div",{class:"v"}),uR=unitSel("dens","kg/m³"),vC=el("div",{class:"v"}),uC=unitSel("cp","kJ/(kg·K)"),vK=el("div",{class:"v"});
+  c.append(el("div",{class:"row out"},el("label",{},"Gefrierpunkt (Frostschutz)"),vF,uF),
+           el("div",{class:"row out"},el("label",{},"Dichte ρ"),vR,uR),
+           el("div",{class:"row out"},el("label",{},"Spez. Wärmekap. c_p"),vC,uC),
+           el("div",{class:"row out"},el("label",{},"Leistung ggü. Wasser (gleiches V̇, ΔT)"),vK,el("span",{},"%")));
+  c.append(el("h3",{style:"margin-top:12px"},"Benötigte Konzentration"));
+  const ti=el("input",{inputmode:"decimal",value:"-20"}),tu=unitSel("temp","°C");
+  c.append(el("div",{class:"row"},el("label",{},"Frostschutz bis"),ti,tu));
+  const vN=el("div",{class:"v"});c.append(el("div",{class:"row out"},el("label",{},"Mindest-Konzentration"),vN,el("span",{},"Vol.-%")));
+  const note=el("div",{class:"note"});c.append(note);
+  c.append(el("div",{class:"hint"},"Richtwerte (typ. Herstellerangaben, z. B. Antifrogen N / L, Tyfocor). Viskosität steigt bei 50 % stark an → Druckverlust und Pumpenauslegung prüfen. Frostschutz ca. 5 K unter tiefster Betriebstemperatur wählen."));
+  function calc(){const t=GLY[ms.value],k=parse(ki.value);
+    const tf=gInterp(t,1,k),r=gInterp(t,2,k),cp=gInterp(t,3,k);
+    vF.textContent=fmt(fromSI("temp",uF.value,tf+273.15));vR.textContent=fmt(fromSI("dens",uR.value,r));vC.textContent=fmt(fromSI("cp",uC.value,cp));
+    vK.textContent=fmt(Math.round(r*cp/(1000*4210)*1000)/10);
+    const tt=toSI("temp",tu.value,parse(ti.value))-273.15;vN.textContent=fmt(Math.ceil(gInterp(t,0,tt,1)));
+    note.textContent=(k<0||k>60||isNaN(k))?"Konzentration 0 … 60 Vol.-% eingeben.":(tt<t[t.length-1][1]?"Frostschutz-Temperatur ausserhalb Tabelle (max. 60 %).":"")}
+  [ms,ki,uF,uR,uC,ti,tu].forEach(e=>{e.addEventListener("input",calc);e.addEventListener("change",calc)});
+  calc();return c;
+}
+
+/* ============ BERECHNUNG: DRUCKVERLUST ============ */
+// Flüssigkeiten: [Name, ρ kg/m³, μ Pa·s]   Gase: [Name, M kg/mol, μ Pa·s, κ]
+const LIQ=[["Wasser 10 °C",999.7,1.31e-3],["Wasser 20 °C",998.2,1.00e-3],["Wasser 60 °C",983.2,0.47e-3],["Wasser 80 °C",971.8,0.355e-3],
+ ["MEG 30 % (0 °C)",1045,3.4e-3],["MEG 50 % (0 °C)",1075,8.5e-3],["MPG 30 % (0 °C)",1030,5.5e-3],["MPG 50 % (0 °C)",1047,17e-3],
+ ["Hydrauliköl HLP 46 (40 °C)",870,40e-3],["Hydrauliköl HLP 32 (40 °C)",865,28e-3],["Diesel / Heizöl EL (20 °C)",840,3.5e-3],["Ethanol (20 °C)",789,1.2e-3]];
+const GAS=[["Luft / Druckluft",0.028964,18.2e-6,1.40],["Stickstoff N₂",0.028013,17.6e-6,1.40],["Sauerstoff O₂",0.031999,20.4e-6,1.40],["Kohlendioxid CO₂",0.044010,14.7e-6,1.29],
+ ["Erdgas (Methan)",0.016043,11.0e-6,1.31],["Propan (Gas)",0.044097,8.0e-6,1.13],["Argon",0.039948,22.3e-6,1.67],["Helium",0.004003,19.6e-6,1.66],["Wasserstoff H₂",0.002016,8.8e-6,1.41]];
+const ROUGH=[["Edelstahl / Kupfer gezogen",0.0015],["Kunststoff PE / PVC / PP",0.007],["Hydraulik-Präzisionsstahlrohr",0.01],["Stahlrohr nahtlos, neu",0.045],["Stahlrohr geschweisst, neu",0.05],["Stahlrohr verzinkt",0.15],["Grauguss",0.25],["Stahlrohr leicht verrostet",0.4],["Gummischlauch",0.02],["Beton",1.0]];
+const ZETA=[["Bogen 90° (R = 1,5·d)",0.3],["Bogen 45°",0.2],["Winkel 90° scharfkantig",1.1],["T-Stück Durchgang",0.3],["T-Stück Abzweig",1.3],["Kugelhahn offen",0.1],["Absperrklappe offen",0.3],["Schieber offen",0.2],["Durchgangsventil offen",4.0],["Rückschlagventil",2.0],["Schmutzfänger / Filter",2.5],["Einlauf scharfkantig",0.5],["Auslauf (in Behälter)",1.0],["Reduzierung / Erweiterung",0.5]];
+const RU=8.314462618;
+function lambdaCalc(Re,k,d){if(Re<=0)return NaN;if(Re<2320)return 64/Re;
+  let l=0.25/Math.log10(k/(3.7*d)+5.74/Re**0.9)**2;              // Swamee-Jain Startwert
+  for(let i=0;i<30;i++){const n=1/(-2*Math.log10(k/(3.7*d)+2.51/(Re*Math.sqrt(l))))**2;if(Math.abs(n-l)<1e-10){l=n;break}l=n}return l}
+function dpCard(){
+  const c=el("div",{class:"card wide"});c.dataset.s="druckverlust rohr leitung gas flüssig wasser luft druckluft";
+  c.append(el("div",{class:"grp"},"Strömung"),el("h3",{},"Druckverlust in Rohrleitungen – Flüssigkeiten & Gase"));
+  const fg=el("div",{class:"fig"});fg.innerHTML=sv(`<path d="M20,60 H150 A20,20 0 0 0 170,40 V22" class="lf" style="fill:none;stroke-width:14;stroke:var(--acc2)"/>`+pa("M20,53 H150 A13,13 0 0 0 163,40 V22 M20,67 H150 A27,27 0 0 0 177,40 V22")+fa(30,60,90,60,"",0,0)+tx(60,50,"ṁ, V̇",1)+tx(10,64,"p₁")+tx(195,14,"p₂")+dim(20,84,150,84,"",0,0)+tx(100,98,"L, d, k")+tx(205,48,"Σζ")+dim(235,22,235,60,"",0,0)+tx(248,44,"Δh")+ln(120,60,120,60));
+  c.append(fg);
+  const fx=el("div",{class:"f"});c.append(fx);
+  const FX={liq:"Δp = (λ·L/d + Σζ)·ρ·v²/2 + ρ·g·Δh\nλ: laminar 64/Re (Re < 2320), turbulent nach Colebrook-White",gas:"Isotherme, kompressible Strömung:\np₁² − p₂² = (ṁ/A)²·(R·T/M)·(λ·L/d + Σζ + 2·ln(p₁/p₂))\nλ: laminar 64/Re (Re < 2320), turbulent nach Colebrook-White"};
+  // Medium-Umschalter
+  let type="liq";const seg=el("div",{class:"seg"});const bL=el("button",{type:"button",class:"on"},"Flüssigkeit"),bG=el("button",{type:"button"},"Gas");seg.append(bL,bG);
+  c.append(el("div",{class:"row"},el("label",{},"Medium-Art"),seg));seg.style.gridColumn="2 / 4";
+  const ms=el("select");c.append(el("div",{class:"row"},el("label",{},"Medium"),ms));ms.style.gridColumn="2 / 4";
+  const cols=el("div",{class:"cols"}),L=el("div"),R=el("div");cols.append(L,R);c.append(cols);
+  const mk=(par,lab,q,u,v)=>{const inp=el("input",{inputmode:"decimal",value:String(v).replace(".",",")}),us=unitSel(q,u);const row=el("div",{class:"row"},el("label",{},lab),inp,us);par.append(row);
+    let last=us.value;us.addEventListener("change",()=>{const x=parse(inp.value.replace(/[’']/g,""));if(isFinite(x))inp.value=fmt(fromSI(q,us.value,toSI(q,last,x))).replace(/[’']/g,"");last=us.value;calc()});inp.addEventListener("input",calc);
+    return{row,inp,us,q,get:()=>toSI(q,us.value,parse(inp.value.replace(/[’']/g,""))),set:x=>{inp.value=fmt(fromSI(q,us.value,x)).replace(/[’']/g,"");last=us.value}}};
+  const mo=(par,lab,q,u)=>{const v=el("div",{class:"v"},"–"),us=q?unitSel(q,u):el("span",{},u||"");const row=el("div",{class:"row out"},el("label",{},lab),v,us);par.append(row);let si=NaN;
+    if(q)us.addEventListener("change",()=>o.set(si));const o={row,set:x=>{si=x;v.textContent=q?fmt(fromSI(q,us.value,x)):(typeof x==="string"?x:fmt(x))}};return o};
+  L.append(el("div",{class:"sub"},"Durchfluss & Leitung"));
+  const ft=el("select");[["vol","Volumenstrom (Betrieb)"],["norm","Normvolumenstrom (0 °C, 1,013 bar)"],["mass","Massenstrom"]].forEach(([v,t])=>ft.append(el("option",{value:v},t)));
+  L.append(el("div",{class:"row"},el("label",{},"Durchflussangabe"),ft));ft.style.gridColumn="2 / 4";
+  let fl=mk(L,"Durchfluss","vflow","m³/h",10);
+  const di=mk(L,"Innendurchmesser d","len","mm",50),le=mk(L,"Leitungslänge L","len","m",50),kr=mk(L,"Rauheit k","len","mm",0.045);
+  const rs=el("select");rs.append(el("option",{value:""},"Rohrwerkstoff wählen …"));ROUGH.forEach(([n,v])=>rs.append(el("option",{value:v},n+"  (k = "+String(v).replace(".",",")+" mm)")));
+  L.append(el("div",{class:"preset"},el("span"),rs));rs.addEventListener("change",()=>{if(rs.value){kr.set(Number(rs.value)/1000);calc()}});
+  const dh=mk(L,"Höhendifferenz Δh (steigend +)","len","m",0);
+  R.append(el("div",{class:"sub"},"Stoffwerte & Zustand"));
+  const p1=mk(R,"Eingangsdruck p₁","pabs","bar (ü)",3);
+  const tg=mk(R,"Gastemperatur t","temp","°C",20);
+  const rho=mk(R,"Dichte ρ","dens","kg/m³",998.2),mu=mk(R,"Dyn. Viskosität μ","visc","mPa·s",1.0);
+  const mm=mk(R,"Molmasse M","molm","g/mol",28.964),ka=mk(R,"Isentropenexp. κ","num","–",1.4);
+  // Formteile
+  const det=el("details");det.append(el("summary",{class:"sub",style:"cursor:pointer;list-style:revert"},"Formteile & Armaturen (Σζ)"));
+  const fit=el("div",{class:"fit"});const cnt=ZETA.map(([n,z])=>{const i=el("input",{inputmode:"numeric",value:"0"});i.addEventListener("input",calc);fit.append(el("div",{},el("span",{},n),i,el("small",{},"ζ "+String(z).replace(".",","))));return[i,z]});
+  det.append(fit);const zx=mk(det,"Zusätzliche ζ-Werte (Summe)","num","–",0);c.append(det);
+  // Ergebnisse
+  c.append(el("div",{class:"sub"},"Ergebnis"));const o1=el("div"),o2=el("div"),oc=el("div",{class:"cols"});oc.append(o1,o2);c.append(oc);
+  const oV=mo(o1,"Geschwindigkeit v (Eintritt)","vel","m/s"),oV2=mo(o1,"Geschwindigkeit v (Austritt)","vel","m/s"),oRe=mo(o1,"Reynoldszahl Re","","–"),oLa=mo(o1,"Rohrreibungszahl λ","","–"),oSt=mo(o1,"Strömung","",""),oZ=mo(o1,"Σζ gesamt","","–"),oM=mo(o1,"Massenstrom ṁ","mflow","kg/h");
+  const oR=mo(o2,"Δp Rohrreibung","press","mbar"),oF=mo(o2,"Δp Formteile","press","mbar"),oH=mo(o2,"Δp Höhe (geodätisch)","press","mbar"),oT=mo(o2,"Δp gesamt","press","bar"),oP2=mo(o2,"Ausgangsdruck p₂","pabs","bar (ü)"),oPm=mo(o2,"Druckgefälle (Rohr)","dpl","mbar/m");
+  const note=el("div",{class:"note"}),hint=el("div",{class:"hint"});c.append(note,hint);
+  function fillMedia(){ms.innerHTML="";(type==="liq"?LIQ:GAS).forEach((m,i)=>ms.append(el("option",{value:i},m[0])));ms.append(el("option",{value:"x"},"Eigene Stoffwerte …"));}
+  function applyMedium(){if(ms.value==="x")return;const m=(type==="liq"?LIQ:GAS)[+ms.value];
+    if(type==="liq"){rho.set(m[1]);mu.set(m[2])}else{mm.set(m[1]);mu.set(m[2]);ka.set(m[3])}}
+  function setType(t){type=t;fx.textContent=FX[t];c.dataset.pdf=t==="liq"?"Druckverlustberechnung – Flüssigkeit":"Druckverlustberechnung – Gas";bL.classList.toggle("on",t==="liq");bG.classList.toggle("on",t==="gas");
+    [tg,mm,ka].forEach(x=>x.row.classList.toggle("hide",t==="liq"));rho.row.classList.toggle("hide",t==="gas");
+    [oV2,oH].forEach(x=>x.row.classList.toggle("hide",t==="gas"?x===oH:x===oV2));
+    ft.querySelector('[value="norm"]').disabled=t==="liq";if(t==="liq"&&ft.value==="norm"){ft.value="vol";setFlow()}
+    if(t==="gas"){mu.us.value="µPa·s";p1.us.value="bar (ü)";ft.value="norm";setFlow();fl.set(60/3600);p1.set(7e5+101325);di.set(0.025);dh.row.classList.add("hide");}
+    else{mu.us.value="mPa·s";dh.row.classList.remove("hide");if(ft.value!=="vol"){ft.value="vol";setFlow()}fl.set(10/3600);p1.set(3e5+101325);di.set(0.05);}
+    fillMedia();ms.value=t==="liq"?"1":"0";applyMedium();calc()}
+  function setFlow(){const q=ft.value==="mass"?"mflow":"vflow",u=ft.value==="mass"?"kg/h":"m³/h";const old=fl.row;const n=mk(L,ft.value==="norm"?"Normvolumenstrom (Nm³)":"Durchfluss",q,u,fl.inp.value);L.insertBefore(n.row,old);old.remove();fl=n;calc()}
+  bL.addEventListener("click",()=>setType("liq"));bG.addEventListener("click",()=>setType("gas"));
+  ms.addEventListener("change",()=>{applyMedium();calc()});ft.addEventListener("change",setFlow);
+  function calc(){note.textContent="";
+    const d=di.get(),Ll=le.get(),k=kr.get(),A=Math.PI*d*d/4,m_=mu.get(),P1=p1.get();
+    const Z=cnt.reduce((s,[i,z])=>s+(parse(i.value)||0)*z,0)+(zx.get()||0);oZ.set(Z);
+    if(type==="liq"){const r=rho.get();let mdot=ft.value==="mass"?fl.get():fl.get()*r;const v=mdot/r/A,Re=r*v*d/m_,la=lambdaCalc(Re,k,d),q=r*v*v/2;
+      const dR=la*Ll/d*q,dF=Z*q,dH=r*9.80665*dh.get(),dT=dR+dF+dH;
+      oV.set(v);oRe.set(Re);oLa.set(la);oM.set(mdot);oR.set(dR);oF.set(dF);oH.set(dH);oT.set(dT);oP2.set(P1-dT);oPm.set(dR/Ll);
+      oSt.set(Re<2320?"laminar":Re<4000?"Übergangsbereich":"turbulent");
+      hint.textContent="Richtwerte Geschwindigkeit: Saugleitung 0,5–1,5 m/s · Druckleitung Wasser 1–3 m/s · Hydraulik Druckleitung 3–6 m/s, Rücklauf 2–3 m/s.";
+      if(P1-dT<0)note.textContent="Achtung: Druckverlust grösser als Eingangsdruck.";
+      if(Re>=2320&&Re<4000)note.textContent+=" Übergangsbereich laminar/turbulent – λ unsicher.";
+    }else{const M=mm.get(),T=tg.get(),RT=RU*T/M,r1=P1/RT,rN=101325*M/(RU*273.15);
+      let mdot=ft.value==="mass"?fl.get():ft.value==="norm"?fl.get()*rN:fl.get()*r1;
+      const G=mdot/A,Re=G*d/m_,la=lambdaCalc(Re,k,d),K=la*Ll/d+Z;
+      let p2=P1,ok=true;for(let i=0;i<200;i++){const a=P1*P1-G*G*RT*(K+2*Math.log(P1/p2));if(a<=0){ok=false;break}const n=Math.sqrt(a);if(Math.abs(n-p2)<1e-6){p2=n;break}p2=0.5*p2+0.5*n}
+      const v1=G/r1,r2=p2/RT,v2=G/r2,cs=Math.sqrt(ka.get()*RT),dT=P1-p2;
+      oV.set(v1);oV2.set(ok?v2:NaN);oRe.set(Re);oLa.set(la);oM.set(mdot);oSt.set(Re<2320?"laminar":Re<4000?"Übergangsbereich":"turbulent");
+      if(ok){oT.set(dT);oR.set(dT*(la*Ll/d)/K||0);oF.set(dT*Z/K||0);oP2.set(p2);oPm.set(dT*(la*Ll/d)/K/Ll)}else[oT,oR,oF,oP2,oPm].forEach(o=>o.set(NaN));
+      hint.textContent="Richtwerte Geschwindigkeit: Druckluft-Hauptleitung 6–10 m/s, Anschlussleitung ≤ 15–20 m/s · Gasleitungen Niederdruck ≤ 6 m/s. Druckluft: Δp gesamt ≤ 0,1 bar empfohlen. Schallgeschw. c = "+fmt(cs)+" m/s.";
+      if(!ok)note.textContent="Durchfluss zu hoch: Eingangsdruck reicht nicht (Strömung würde Schallgeschwindigkeit erreichen). Durchmesser vergrössern.";
+      else if(v2/cs>1/Math.sqrt(ka.get())*0.9)note.textContent="Achtung: Nahe an der kritischen (Schall-)Geschwindigkeit – Ergebnis unsicher.";
+      else if(dT/P1>0.4)note.textContent="Hinweis: Druckverlust > 40 % des Eingangsdrucks – Leitung ist knapp dimensioniert.";
+      if(P1<=0)note.textContent="Eingangsdruck muss über 0 bar (abs) liegen.";
+    }}
+  setType("liq");return c;
+}
+
+/* ============ PDF-EXPORT (Bereich Berechnungen) ============ */
+const loadJs=src=>new Promise((ok,err)=>{if(document.querySelector('script[data-src="'+src+'"]'))return ok();const s=document.createElement("script");s.src=src;s.dataset.src=src;s.onload=ok;s.onerror=()=>err(new Error(src));document.head.append(s)});
+const imgData=src=>new Promise(ok=>{const i=new Image();i.onload=()=>{try{const c=document.createElement("canvas");c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext("2d").drawImage(i,0,0);ok(c.toDataURL("image/png"))}catch(e){ok(null)}};i.onerror=()=>ok(null);i.src=src});
+const vis=e=>!e.closest(".hide")&&e.offsetParent!==null;
+const selTxt=s=>s.options[s.selectedIndex]?s.options[s.selectedIndex].text:"";
+// Liest eine Rechenkarte in Abschnitte aus: Eingaben, Formteile, Ergebnisse
+function cardReport(card){
+  const secs=[];let cur={h:"Eingaben",rows:[]};secs.push(cur);
+  const walk=n=>{for(const e of n.children){
+    if(e.classList.contains("hide"))continue;
+    if(e.classList.contains("sub")){cur={h:e.textContent.trim(),rows:[]};secs.push(cur);continue}
+    if(e.tagName==="SUMMARY"){cur={h:e.textContent.trim(),rows:[]};secs.push(cur);continue}
+    if(e.classList.contains("fit")){for(const f of e.children){const n=parse(f.children[1].value);if(n>0)cur.rows.push([f.children[0].textContent,n+" ×",f.children[2].textContent])}if(!cur.rows.length)cur.rows.push(["keine Formteile","",""]);continue}
+    if(e.classList.contains("row")){const lab=e.children[0].textContent.trim();const a=e.children[1],b=e.children[2];
+      const val=x=>!x?"":x.tagName==="INPUT"?(isFinite(parse(x.value.replace(/[’']/g,"")))?fmt(parse(x.value.replace(/[’']/g,""))):x.value):x.tagName==="SELECT"?selTxt(x):x.classList&&x.classList.contains("seg")?(x.querySelector(".on")||{}).textContent||"":x.textContent.trim();
+      if(a&&a.classList&&a.classList.contains("seg"))cur.rows.push([lab,val(a),""]);
+      else if(a&&a.tagName==="SELECT"&&!b)cur.rows.push([lab,val(a),""]);
+      else cur.rows.push([lab,val(a),val(b)]);
+      if(e.classList.contains("out"))cur.rows[cur.rows.length-1].res=1;continue}
+    if(e.children.length&&!["fig","f","note","hint","preset","grp"].some(k=>e.classList.contains(k))&&e.tagName!=="H3")walk(e);
+  }};walk(card);
+  return{title:card.dataset.pdf||card.querySelector("h3").textContent,group:(card.querySelector(".grp")||{}).textContent||"",formula:(card.querySelector(".f")||{}).textContent||"",
+    note:[...card.querySelectorAll(".note")].map(x=>x.textContent).filter(Boolean).join(" "),hint:[...card.querySelectorAll(".hint")].map(x=>x.textContent).join(" "),secs:secs.filter(s=>s.rows.length)};
+}
+async function makePdf(card,meta){
+  await loadJs("jspdf.umd.min.js");await loadJs("pdffont.js");
+  const R=cardReport(card),{jsPDF}=window.jspdf,doc=new jsPDF({unit:"mm",format:"a4"});
+  doc.addFileToVFS("DV.ttf",RELIB_FONTS.n);doc.addFont("DV.ttf","DV","normal");doc.addFileToVFS("DVB.ttf",RELIB_FONTS.b);doc.addFont("DVB.ttf","DV","bold");
+  const NAVY=[23,58,107],ORA=[239,125,31],W=210,M=15;let y=0,page=1;
+  const now=new Date(),dstr=now.toLocaleDateString("de-CH")+" "+now.toLocaleTimeString("de-CH",{hour:"2-digit",minute:"2-digit"});
+  const logo=await imgData("icon-192.png");
+  const head=()=>{doc.setFillColor(...NAVY);doc.rect(0,0,W,24,"F");if(logo)doc.addImage(logo,"PNG",M,4,16,16);
+    doc.setTextColor(255);doc.setFont("DV","bold");doc.setFontSize(14);doc.text(doc.splitTextToSize(R.title,130)[0],M+20,11.5);
+    doc.setFont("DV","normal");doc.setFontSize(8.5);doc.text("re.lib · "+R.group,M+20,17.5);doc.text(dstr,W-M,17.5,{align:"right"});doc.text("re engineering solution",W-M,11.5,{align:"right"});
+    doc.setFillColor(...ORA);doc.rect(0,24,W,1.2,"F");y=33};
+  const foot=()=>{doc.setFont("DV","normal");doc.setFontSize(7.5);doc.setTextColor(120);doc.setDrawColor(200);doc.line(M,284,W-M,284);
+    doc.text("Erstellt mit re.lib"+(isBuilt?" v"+APP_VER:"")+" – Rechenwerte sind Richtwerte, Auslegung durch Fachperson prüfen.",M,288.5);doc.text("Seite "+page,W-M,288.5,{align:"right"})};
+  const need=h=>{if(y+h>280){foot();doc.addPage();page++;head()}};
+  head();
+  // Projektangaben
+  doc.setTextColor(30);doc.setFontSize(9.5);
+  const info=[["Projekt / Anlage",meta.proj||"–"],["Position / Bemerkung",meta.pos||"–"],["Bearbeitet von",meta.by||"–"],["Datum",dstr]];
+  doc.setDrawColor(210);doc.setFillColor(244,246,249);doc.roundedRect(M,y-4.5,W-2*M,info.length*5.4+3,1.5,1.5,"FD");
+  info.forEach(([k,v],i)=>{doc.setFont("DV","normal");doc.setTextColor(100);doc.text(k,M+3,y+i*5.4);doc.setTextColor(20);doc.setFont("DV","bold");doc.text(String(v),M+48,y+i*5.4)});
+  y+=info.length*5.4+5;
+  // Formel
+  if(R.formula){need(16);doc.setFont("DV","bold");doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text("Berechnungsgrundlage",M,y);y+=5;
+    doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.splitTextToSize(R.formula,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.text(l,M,y);y+=4.1});y+=2}
+  // Abschnitte
+  for(const s of R.secs){need(s.h==="Ergebnis"?Math.min(80,8+s.rows.length*5.5):14);doc.setFont("DV","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(s.h,M,y);doc.setDrawColor(...ORA);doc.setLineWidth(.5);doc.line(M,y+1.5,M+30,y+1.5);doc.setLineWidth(.2);y+=6;
+    s.rows.forEach((r,i)=>{need(5.4);if(r.res){doc.setFillColor(233,247,241);doc.rect(M,y-3.7,W-2*M,5.1,"F")}else if(i%2){doc.setFillColor(247,248,250);doc.rect(M,y-3.7,W-2*M,5.1,"F")}
+      doc.setFontSize(8.9);doc.setFont("DV","normal");doc.setTextColor(40);doc.text(doc.splitTextToSize(r[0],95)[0],M+2,y);
+      doc.setFont("DV",r.res?"bold":"normal");doc.setTextColor(...(r.res?[13,110,79]:[20,20,20]));doc.text(String(r[1]),M+138,y,{align:"right"});
+      doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=5.1});y+=2.5}
+  if(R.note){need(12);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.splitTextToSize("Hinweis: "+R.note,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.text(l,M,y);y+=4.3});y+=2}
+  if(R.hint){doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.splitTextToSize(R.hint,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.text(l,M,y);y+=4})}
+  foot();
+  const fn=(R.title.split(/[ –(]/)[0]||"Berechnung")+"_"+(meta.proj?meta.proj.replace(/[^\wäöüÄÖÜ-]+/g,"_")+"_":"")+now.toISOString().slice(0,10)+".pdf";
+  return{doc,fn};
+}
+async function savePdf(doc,fn){
+  if(window.relibDesktop){const f=await window.relibDesktop.savePdf(fn,doc.output("datauristring").split(",")[1]);return f?"PDF gespeichert und geöffnet":"Abgebrochen"}
+  const C=window.Capacitor;
+  if(C&&C.isNativePlatform&&C.isNativePlatform()){ // Android-App: Datei speichern und Teilen-Menü (Drucken, OneDrive, Mail …)
+    const FS=C.Plugins.Filesystem,SH=C.Plugins.Share;if(!FS||!SH)throw new Error("Für den PDF-Export bitte die neue APK einmal installieren");const b64=doc.output("datauristring").split(",")[1];
+    const w=await FS.writeFile({path:fn,data:b64,directory:"CACHE"});await SH.share({title:fn,url:w.uri,dialogTitle:"PDF speichern oder drucken"});return "PDF erstellt"}
+  const blob=doc.output("blob"),url=URL.createObjectURL(blob);
+  let w=null;try{w=window.open(url,"_blank")}catch(e){}                 // PDF im Viewer öffnen → Drucken / Speichern
+  if(!w){const a=document.createElement("a");a.href=url;a.download=fn;document.body.append(a);a.click();a.remove()}
+  setTimeout(()=>URL.revokeObjectURL(url),120000);return w?"PDF geöffnet – drucken oder speichern":"PDF gespeichert: "+fn;
+}
+function addPdfBar(card){
+  const g=k=>store.get("tl_pdf_"+k)||"";
+  const pj=el("input",{value:g("proj"),placeholder:"Projekt / Anlage",style:"text-align:left"}),ps=el("input",{value:"",placeholder:"Position / Bemerkung",style:"text-align:left"}),by=el("input",{value:g("by"),placeholder:"Bearbeitet von",style:"text-align:left"});
+  const bt=el("button",{type:"button",class:"pdfbtn"},"📄 Als PDF speichern / drucken");
+  const box=el("div",{class:"pdfbar"},el("div",{class:"sub",style:"border:0;margin:0 0 6px;padding:0"},"PDF-Bericht"),el("div",{class:"pdfin"},pj,ps,by,bt));
+  card.append(box);
+  bt.addEventListener("click",async()=>{store.set("tl_pdf_proj",pj.value);store.set("tl_pdf_by",by.value);bt.disabled=true;const t=bt.textContent;bt.textContent="PDF wird erstellt …";
+    try{const{doc,fn}=await makePdf(card,{proj:pj.value.trim(),pos:ps.value.trim(),by:by.value.trim()});toast(await savePdf(doc,fn))}
+    catch(e){toast(/APK/.test(e.message)?e.message:/claude/.test(location.host)?"In der Vorschau gesperrt – PDF in der installierten App":"PDF konnte nicht erstellt werden")}
+    bt.disabled=false;bt.textContent=t});
+}
+
+/* ============ UMRECHNER ============ */
+function buildConv(){
+  const p=document.getElementById("p-conv");
+  const cs=el("select");Object.keys(Q).filter(k=>!["num","pct","hum","gpress"].includes(k)).forEach(k=>cs.append(el("option",{value:k},Q[k].n)));
+  const vi=el("input",{inputmode:"decimal",value:"1"});let us=unitSel("len","mm");
+  const box=el("div",{class:"conv"},cs,vi,us);const res=el("div",{class:"convres"});
+  p.append(el("div",{class:"hint"},"Kategorie und Ausgangseinheit wählen, Wert eingeben. Tippen auf ein Ergebnis übernimmt es als neuen Ausgangswert."),box,res);
+  const saved=store.get("tl_cat");if(saved&&Q[saved])cs.value=saved;
+  function setCat(){const ns=unitSel(cs.value);box.replaceChild(ns,us);us=ns;us.addEventListener("change",run);store.set("tl_cat",cs.value);run()}
+  function run(){res.innerHTML="";const x=parse(vi.value.replace(/[’']/g,""));const q=cs.value;const si=toSI(q,us.value,x);
+    Object.keys(Q[q].u).forEach(u=>{const val=fromSI(q,u,si);const d=el("div",{class:u===us.value?"src":""},el("span",{},u),el("b",{},isFinite(x)?fmt(val):"–"));
+      d.addEventListener("click",()=>{us.value=u;vi.value=fmt(val).replace(/[’']/g,"");run()});res.append(d)})}
+  cs.addEventListener("change",setCat);vi.addEventListener("input",run);us.addEventListener("change",run);setCat();
+}
+
+/* ============ TABELLEN ============ */
+function tbl(head,rows){const t=el("table");const tr=el("tr");head.forEach(h=>tr.append(el("th",{},h)));t.append(tr);
+  rows.forEach(r=>{const x=el("tr");r.forEach(v=>x.append(el("td",{},typeof v==="number"?String(v).replace(".",","):v)));t.append(x)});return el("div",{class:"tw"},t)}
+function buildTables(){
+  const p=document.getElementById("p-tab");
+  p.append(el("h2",{},"Metrisches ISO-Regelgewinde"),
+   tbl(["Gewinde","Steigung P [mm]","Kernloch-Ø [mm]","Spannungsquerschn. A_s [mm²]","Durchgangsloch mittel [mm]","SW Sechskant [mm]","SW Innensechskant [mm]"],
+   [["M3",0.5,2.5,5.03,3.4,5.5,2.5],["M4",0.7,3.3,8.78,4.5,7,3],["M5",0.8,4.2,14.2,5.5,8,4],["M6",1,5,20.1,6.6,10,5],["M8",1.25,6.8,36.6,9,13,6],["M10",1.5,8.5,58,11,16,8],["M12",1.75,10.2,84.3,13.5,18,10],["M14",2,12,115,15.5,21,12],["M16",2,14,157,17.5,24,14],["M20",2.5,17.5,245,22,30,17],["M24",3,21,353,26,36,19],["M30",3.5,26.5,561,33,46,22]]),
+   el("div",{class:"hint"},"SW Sechskant nach ISO 4014/4017 (alte DIN-Werte: M10 = 17, M12 = 19, M14 = 22). Durchgangsloch nach ISO 273, Reihe mittel."));
+  p.append(el("h2",{},"Festigkeitsklassen Schrauben"),
+   tbl(["Klasse","R_m [N/mm²]","R_e / R_p0,2 [N/mm²]"],[["4.6",400,240],["5.6",500,300],["8.8",800,640],["10.9",1000,900],["12.9",1200,1080],["A2-70 / A4-70",700,450],["A4-80",800,600]]));
+  p.append(el("h2",{},"Werkstoffkennwerte (Richtwerte)"),
+   tbl(["Werkstoff","Dichte [kg/m³]","E-Modul [GPa]","α [10⁻⁶/K]"],[["Baustahl S235/S355",7850,210,12],["Edelstahl 1.4301",7900,200,16],["Aluminium (Leg.)",2700,70,23],["Kupfer",8960,120,17],["Messing CuZn39Pb3",8500,100,19],["Grauguss EN-GJL-250",7200,110,10.5],["Titan Grade 5",4500,110,8.6],["POM",1410,3,110],["PA6",1140,3,80],["PE-HD",950,1,200]]));
+  p.append(el("h2",{},"Kältemittel – Übersicht"),
+   tbl(["Kältemittel","GWP (AR4)","Sicherheitsklasse","Siedepunkt 1,013 bar [°C]","Krit. Temp. [°C]","p_sat −10 °C [bar abs]","p_sat 0 °C","p_sat +40 °C"],
+   Object.entries(REF).map(([k,r])=>[k,r.gwp,r.cls,r.nbp,r.tc,r.p[3],r.p[4],r.p[8]??"überkrit."])),
+   el("div",{class:"hint"},"GWP nach IPCC AR4 (Basis EU-F-Gase-Verordnung). Sicherheitsklasse nach ISO 817 / EN 378: A = geringe Toxizität, B = höhere Toxizität; 1 = nicht brennbar, 2L = schwer entflammbar, 3 = brennbar. Werte vor Verwendung gegen Herstellerdatenblatt prüfen."));
+  p.append(el("h2",{},"Sättigungsdrucktabelle [bar abs]"),
+   tbl(["t [°C]",...Object.keys(REF)],RT.map((t,i)=>[t,...Object.values(REF).map(r=>r.p[i]??"–")])));
+  p.append(el("h2",{},"Glykol-Wasser-Gemische (Richtwerte bei ca. 0 °C)"),
+   tbl(["Vol.-%","MEG Gefrierpkt. [°C]","MEG ρ [kg/m³]","MEG c_p [kJ/(kg·K)]","MPG Gefrierpkt. [°C]","MPG ρ [kg/m³]","MPG c_p [kJ/(kg·K)]"],
+   GLY["Ethylenglykol (MEG)"].map((r,i)=>{const q=GLY["Propylenglykol (MPG)"][i];return[r[0],r[1],r[2],r[3]/1000,q[1],q[2],q[3]/1000]})),
+   el("div",{class:"hint"},"MEG = Monoethylenglykol (giftig, z. B. Antifrogen N), MPG = Monopropylenglykol (lebensmitteltauglich, z. B. Antifrogen L). Herstellerdatenblatt beachten."));
+  p.append(el("h2",{},"Wichtige Konstanten"),
+   tbl(["Grösse","Wert"],[["Erdbeschleunigung g","9,80665 m/s²"],["Normluftdruck","1013,25 hPa"],["Absoluter Nullpunkt","−273,15 °C"],["Dichte Luft 20 °C","1,204 kg/m³"],["c_p Luft","1,005 kJ/(kg·K)"],["c_p Wasser 20 °C","4,182 kJ/(kg·K)"],["Verdampfungsenthalpie Wasser 100 °C","2257 kJ/kg"],["Schmelzwärme Eis","334 kJ/kg"],["1 Kältetonne (TR)","3,517 kW"]]));
+}
+
+const TABS=["conv","mech","kaelte","calc","tab"];
+/* ============ INIT ============ */
+F.mech.forEach(d=>document.getElementById("g-mech").append(card(d)));
+const gk=document.getElementById("g-kaelte");gk.append(refCard());gk.append(glyCard());F.kaelte.forEach(d=>gk.append(card(d)));
+{const dc=dpCard();document.getElementById("g-calc").append(dc);addPdfBar(dc);}
+buildConv();buildTables();
+document.querySelectorAll(".search").forEach(s=>s.addEventListener("input",()=>{const q=s.value.toLowerCase().trim();
+  document.querySelectorAll("#g-"+s.dataset.for+" .card").forEach(c=>c.classList.toggle("hide",q&&!q.split(/\s+/).every(w=>c.dataset.s.includes(w))))}));
+function show(t){document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t===t));
+  TABS.forEach(x=>document.getElementById("p-"+x).classList.toggle("hide",x!==t));}
+document.querySelectorAll("#tabs button").forEach(b=>b.addEventListener("click",()=>{show(b.dataset.t);if(history.replaceState)try{location.hash=b.dataset.t}catch(e){}}));
+const h=(location.hash||"").slice(1);if(TABS.includes(h))show(h);
+window.addEventListener("hashchange",()=>{const h=location.hash.slice(1);if(TABS.includes(h))show(h)});
+
+/* ============ UPDATE (Android-App & Windows-App) ============ */
+const APP_VER="__BUILD__";               // wird beim Bau auf GitHub gesetzt
+const FEED="__FEED__";                   // GitHub-Release version.json (Android)
+const isBuilt=!APP_VER.startsWith("__");
+const DESK=window.relibDesktop||null;    // Windows-App (Electron)
+document.getElementById("verlbl").textContent=isBuilt?"v"+APP_VER:"";
+function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("on"),2800)}
+let _upd=null;
+const isNative=()=>{const C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform())};
+const updater=()=>{if(_upd)return _upd;if(!isNative())return null;const C=window.Capacitor;
+  _upd=(C.Plugins&&C.Plugins.CapacitorUpdater)||(C.registerPlugin?C.registerPlugin("CapacitorUpdater"):null);return _upd};
+function updBar(text,btnText,onClick){
+  document.getElementById("updbar")?.remove();
+  const btn=el("button",{type:"button",class:"upd-go"},btnText);const lab=el("span",{},text);
+  const bar=el("div",{id:"updbar",role:"status"},lab,btn,el("button",{type:"button",class:"upd-x","aria-label":"Später",onclick:()=>bar.remove()},"✕"));
+  btn.addEventListener("click",()=>onClick(btn,lab));document.getElementById("updslot").prepend(bar);return{btn,lab};
+}
+// ---- Windows ----
+let deskManual=false;
+if(DESK){
+  DESK.version().then(v=>{document.getElementById("verlbl").textContent="v"+v}).catch(()=>{});
+  DESK.onUpdate(m=>{
+    if(m.s==="available")updBar("Update verfügbar: Version "+m.d,"Jetzt aktualisieren",(btn,lab)=>{btn.disabled=true;btn.textContent="Wird geladen …";DESK.download().catch(()=>{btn.disabled=false;btn.textContent="Erneut versuchen"})});
+    else if(m.s==="progress"){const b=document.querySelector("#updbar .upd-go");if(b)b.textContent="Lädt … "+m.d+" %"}
+    else if(m.s==="ready")updBar("Update ist bereit.","Neu starten & installieren",btn=>{btn.disabled=true;DESK.install()});
+    else if(m.s==="none"){if(deskManual)toast("re.lib ist aktuell")}
+    else if(m.s==="error"){if(deskManual)toast("Update-Server nicht erreichbar");const b=document.querySelector("#updbar .upd-go");if(b){b.disabled=false;b.textContent="Erneut versuchen"}}
+  });
+}
+async function checkUpdate(manual){
+  if(DESK){deskManual=manual;const r=await DESK.check().catch(()=>({}));if(r&&r.dev&&manual)toast("Entwicklungsversion – keine Updates");return}
+  if(!isNative()){if(manual)toast("Updates gibt es in der installierten App (Android / Windows)");return}
+  const U=updater();let remote;
+  try{try{await U.notifyAppReady()}catch(e){}
+    remote=await(await fetch(FEED+"?t="+Date.now(),{cache:"no-store"})).json();}
+  catch(e){if(manual)toast("Update-Server nicht erreichbar");return}
+  // Neue Android-Bausteine nötig? → komplette APK neu installieren
+  let build=0;try{const A=window.Capacitor.Plugins.App;if(A)build=+(await A.getInfo()).build}catch(e){}
+  if(remote.minApk&&build&&build<+remote.minApk&&remote.apk){
+    updBar("Neue App-Version "+remote.version+" (Installation nötig)","APK herunterladen",()=>{location.href=remote.apk});return}
+  if(+remote.version>+APP_VER){
+    updBar("Update verfügbar: Version "+remote.version,"Jetzt aktualisieren",async(btn)=>{btn.disabled=true;btn.textContent="Wird geladen …";
+      try{const b=await U.download({url:remote.url,version:String(remote.version)});btn.textContent="Wird installiert …";await U.set({id:b.id})}
+      catch(e){btn.disabled=false;btn.textContent="Erneut versuchen";toast("Update fehlgeschlagen")}});
+  }else if(manual)toast("re.lib ist aktuell (Version "+APP_VER+")");
+}
+document.getElementById("updchk").addEventListener("click",()=>checkUpdate(true));
+setTimeout(()=>checkUpdate(false),1500);
+</script>
+</body>
+</html>
