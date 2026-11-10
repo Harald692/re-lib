@@ -697,7 +697,8 @@ const APP_VER="__BUILD__";               // wird beim Bau auf GitHub gesetzt
 const FEED="__FEED__";                   // GitHub-Release version.json (Android)
 const isBuilt=!APP_VER.startsWith("__");
 const DESK=window.relibDesktop||null;    // Windows-App (Electron)
-document.getElementById("verlbl").textContent=isBuilt?"v"+APP_VER:"";
+const VNAME=v=>"1.0."+v;                 // gleiche Schreibweise wie Windows (1.0.x)
+document.getElementById("verlbl").textContent=isBuilt?"v"+VNAME(APP_VER):"";
 function toast(t){const e=document.getElementById("toast");e.textContent=t;e.classList.add("on");clearTimeout(toast._t);toast._t=setTimeout(()=>e.classList.remove("on"),2800)}
 let _upd=null;
 const isNative=()=>{const C=window.Capacitor;return !!(C&&C.isNativePlatform&&C.isNativePlatform())};
@@ -732,12 +733,12 @@ async function checkUpdate(manual){
   // Neue Android-Bausteine nötig? → komplette APK neu installieren
   let build=0;try{const A=window.Capacitor.Plugins.App;if(A)build=+(await A.getInfo()).build}catch(e){}
   if(remote.minApk&&build&&build<+remote.minApk&&remote.apk){
-    updBar("Neue App-Version "+remote.version+" (Installation nötig)","APK herunterladen",()=>{location.href=remote.apk});return}
+    updBar("Neue App-Version "+VNAME(remote.version)+" (Installation nötig)","APK herunterladen",()=>{location.href=remote.apk});return}
   if(+remote.version>+APP_VER){
-    updBar("Update verfügbar: Version "+remote.version,"Jetzt aktualisieren",async(btn)=>{btn.disabled=true;btn.textContent="Wird geladen …";
+    updBar("Update verfügbar: Version "+VNAME(remote.version),"Jetzt aktualisieren",async(btn)=>{btn.disabled=true;btn.textContent="Wird geladen …";
       try{const b=await U.download({url:remote.url,version:String(remote.version)});btn.textContent="Wird installiert …";await U.set({id:b.id})}
       catch(e){btn.disabled=false;btn.textContent="Erneut versuchen";toast("Update fehlgeschlagen: "+(e&&e.message||e))}});
-  }else if(manual)toast("re.lib ist aktuell (Version "+APP_VER+", Server "+remote.version+")");
+  }else if(manual)toast("re.lib ist aktuell (Version "+VNAME(APP_VER)+")");
 }
 document.getElementById("updchk").addEventListener("click",()=>checkUpdate(true));
 setTimeout(()=>checkUpdate(false),1500);
