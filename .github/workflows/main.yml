@@ -80,6 +80,9 @@ jobs:
           sed -i "s#__OWNER__#$OWNER#; s#__REPO__#$REPO#; s#\"version\": \"1.0.0\"#\"version\": \"$VER\"#" package.json
       - name: Windows-App bauen
         run: cd desktop && npm install && npx electron-builder --win nsis --publish never
+      - name: Setup zusätzlich als ZIP verpacken (Browser blockiert .exe-Downloads ohne Signatur)
+        shell: pwsh
+        run: Compress-Archive -Path desktop/dist/reLib-Setup-*.exe -DestinationPath desktop/dist/reLib-Windows-Setup.zip
       - name: Setup zum Release hinzufügen
         uses: softprops/action-gh-release@v3
         with:
@@ -88,4 +91,5 @@ jobs:
             desktop/dist/reLib-Setup-*.exe
             desktop/dist/reLib-Setup-*.exe.blockmap
             desktop/dist/latest.yml
+            desktop/dist/reLib-Windows-Setup.zip
           make_latest: true
