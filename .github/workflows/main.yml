@@ -36,6 +36,21 @@ jobs:
           done
           rm -rf android/app/src/main/res/mipmap-anydpi-v26
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - name: APK mit festem Schlüssel signieren (Secrets RELIB_KEYSTORE / RELIB_KEY_PASS)
+        env:
+          KS: ${{ secrets.RELIB_KEYSTORE }}
+          KP: ${{ secrets.RELIB_KEY_PASS }}
+        run: |
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          if [ -n "$KS" ] && [ -n "$KP" ]; then
+            echo "$KS" | base64 -d > /tmp/relib.jks
+            BT=$(ls "$ANDROID_HOME/build-tools" | sort -V | tail -1)
+            "$ANDROID_HOME/build-tools/$BT/apksigner" sign --ks /tmp/relib.jks --ks-pass env:KP --key-pass env:KP --ks-key-alias relib "$APK"
+            "$ANDROID_HOME/build-tools/$BT/apksigner" verify --print-certs "$APK" | head -3
+            rm -f /tmp/relib.jks
+          else
+            echo "::warning::Kein fester Schlüssel hinterlegt – APK mit wechselndem Debug-Schlüssel signiert."
+          fi
       - name: Update-Paket und version.json
         run: |
           cd www && zip -qr ../www.zip . && cd ..
