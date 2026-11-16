@@ -46,10 +46,11 @@ jobs:
           PREV=$(curl -sfL "https://github.com/$REPO/releases/latest/download/version.json" || echo '{}')
           PH=$(echo "$PREV" | jq -r '.native // ""'); PMIN=$(echo "$PREV" | jq -r '.minApk // 0')
           if [ "$HASH" != "$PH" ]; then MIN=$N; else MIN=$PMIN; fi
-          jq -n --argjson v $N --argjson m $MIN --arg h "$HASH" \
+          SUM=$(sha256sum www.zip | cut -d' ' -f1)
+          jq -n --argjson v $N --argjson m $MIN --arg h "$HASH" --arg c "$SUM" \
             --arg u "https://github.com/$REPO/releases/download/$TAG/www.zip" \
             --arg a "https://github.com/$REPO/releases/download/$TAG/reLib.apk" \
-            '{version:$v, url:$u, apk:$a, native:$h, minApk:$m}' > version.json
+            '{version:$v, url:$u, checksum:$c, apk:$a, native:$h, minApk:$m}' > version.json
           cat version.json
       - name: Release erstellen
         uses: softprops/action-gh-release@v3

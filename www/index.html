@@ -796,7 +796,7 @@ async function checkUpdate(manual){
     updBar("Neue App-Version "+VNAME(remote.version)+" (Installation nötig)","APK herunterladen",()=>{location.href=remote.apk});return}
   if(+remote.version>+APP_VER){
     updBar("Update verfügbar: Version "+VNAME(remote.version),"Jetzt aktualisieren",async(btn)=>{btn.disabled=true;btn.textContent="Wird geladen …";
-      try{const b=await U.download({url:remote.url,version:String(remote.version)});btn.textContent="Wird installiert …";await U.set({id:b.id})}
+      try{const b=await U.download({url:remote.url,version:String(remote.version),checksum:remote.checksum||""});btn.textContent="Wird installiert …";await U.set({id:b.id})}
       catch(e){btn.disabled=false;btn.textContent="Erneut versuchen";toast("Update fehlgeschlagen: "+(e&&e.message||e))}});
   }else if(manual)toast("re.lib ist aktuell (Version "+VNAME(APP_VER)+")");
 }
