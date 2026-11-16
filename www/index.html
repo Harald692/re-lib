@@ -149,6 +149,7 @@ const Q = {
  hum:{n:"Feuchtegehalt",u:{"g/kg":1e-3,"kg/kg":1}},
  visc:{n:"Dyn. Viskosität",u:{"mPa·s":1e-3,"cP":1e-3,"Pa·s":1,"µPa·s":1e-6}},
  molm:{n:"Molmasse",u:{"g/mol":1e-3,"kg/kmol":1e-3,"kg/mol":1}},
+ flast:{n:"Flächenlast",u:{"Pa = N/m²":1,"kN/m²":1e3,"kp/m² (kg/m²)":9.80665,"psf":47.880259}},
  dpl:{n:"Druckgefälle",u:{"Pa/m":1,"mbar/m":100,"mbar/100 m":1,"bar/100 m":1000,"kPa/m":1000}}
 };
 const toSI=(q,u,x)=>{const f=Q[q].u[u];return typeof f==="object"?f.to(x):x*f};
@@ -551,6 +552,65 @@ function ventCard(){
   calc();return c;
 }
 
+/* ============ BERECHNUNG: WINDLAST / STAUDRUCK ============ */
+const BFT=[0.3,1.6,3.4,5.5,8.0,10.8,13.9,17.2,20.8,24.5,28.5,32.7];   // Obergrenzen m/s je Beaufort-Stufe
+const BFTN=["Windstille","leiser Zug","leichte Brise","schwache Brise","mässige Brise","frische Brise","starker Wind","steifer Wind","stürmischer Wind","Sturm","schwerer Sturm","orkanartiger Sturm","Orkan"];
+const bft=v=>{const i=BFT.findIndex(x=>v<x);return i<0?12:i};
+const WINDV=[["Bft 4 – mässige Brise (25 km/h)",25/3.6],["Bft 6 – starker Wind (45 km/h)",45/3.6],["Kran-Betriebsgrenze typ. 20 m/s (72 km/h)",20],["Bft 8 – stürmischer Wind (70 km/h)",70/3.6],["Bft 10 – schwerer Sturm (100 km/h)",100/3.6],["Bft 12 – Orkan (120 km/h)",120/3.6],["Orkanböe Mittelland (140 km/h)",140/3.6],["Orkanböe exponiert / Gebirge (180 km/h)",180/3.6]];
+const CF=[["Platte / Schild / Wand freistehend",1.8],["Quader / Kasten / Schaltschrank",1.4],["Würfel",1.05],["Kreiszylinder / Rohr (rau, Re klein)",1.2],["Kreiszylinder / Rohr (glatt, schnell)",0.7],["Kugel",0.5],["Flachstahl / Winkelprofil",2.0],["I- / U-Profil quer angeströmt",2.0],["Fachwerk / Gitter (je Bruttofläche, ca.)",1.6],["Person (Stirnfläche ca. 0,7 m²)",1.1]];
+const TERR=[["See / Küste, offen (α 0,11)",0.11],["Freies Feld, wenig Hindernisse (α 0,16)",0.16],["Vorort / Industriegebiet (α 0,22)",0.22],["Stadt / Wald (α 0,30)",0.30]];
+function windCard(){
+  const c=el("div",{class:"card wide"});c.dataset.s="wind windlast staudruck sturm beaufort km/h böe kippmoment schild fassade";
+  c.dataset.pdf="Windlast & Staudruck";
+  c.append(el("div",{class:"grp"},"Statik / Umwelt"),el("h3",{},"Windlast & Staudruck"));
+  const fg=el("div",{class:"fig"});fg.innerHTML=sv(ln(10,104,250,104)+[22,40,58,76].map(y=>fa(14,y,96,y)).join("")+tx(30,16,"v",1)+
+    rc(130,14,80,52,"lf")+tx(170,44,"A, c_f")+rc(166,66,8,38,"lf")+fa(118,40,128,40)+fa(222,40,250,40,"F_w",240,32)+dim(232,40,232,104,"",0,0)+tx(242,80,"h")+dim(216,14,216,104,"",0,0)+tx(205,98,"z")+pa("M160,104 l-6,0 m26,0 l-6,0")+marc(170,104,14,200,330));
+  c.append(fg);
+  c.append(el("div",{class:"f"},"Staudruck q = ρ/2 · v²     (ρ ≈ 1,25 kg/m³)     Windkraft F_w = c_f · q · A · (Böen- / Sicherheitsfaktor)\nHöhe:  v(z) = v_ref · (z / 10 m)^α     Kippmoment M = F_w · h     1 m/s = 3,6 km/h"));
+  const mk=(par,lab,q,u,v)=>{const inp=el("input",{inputmode:"decimal",value:String(v).replace(".",",")}),us=unitSel(q,u);const row=el("div",{class:"row"},el("label",{},lab),inp,us);par.append(row);
+    let last=us.value;us.addEventListener("change",()=>{const x=parse(inp.value.replace(/[’']/g,""));if(isFinite(x))inp.value=fmt(fromSI(q,us.value,toSI(q,last,x))).replace(/[’']/g,"");last=us.value;calc()});inp.addEventListener("input",calc);
+    return{row,inp,us,q,get:()=>toSI(q,us.value,parse(inp.value.replace(/[’']/g,""))),set:x=>{inp.value=fmt(fromSI(q,us.value,x)).replace(/[’']/g,"");last=us.value}}};
+  const mo=(par,lab,q,u)=>{const v=el("div",{class:"v"},"–"),us=q?unitSel(q,u):el("span",{},u||"");const row=el("div",{class:"row out"},el("label",{},lab),v,us);par.append(row);let si=NaN;
+    const o={row,set:x=>{si=x;v.textContent=q?fmt(fromSI(q,us.value,x)):(typeof x==="string"?x:fmt(x))}};if(q)us.addEventListener("change",()=>o.set(si));return o};
+  const sel=(par,lab,opts)=>{const s=el("select");opts.forEach(([v,t])=>s.append(el("option",{value:v},t)));const row=el("div",{class:"row"},el("label",{},lab),s);s.style.gridColumn="2 / 4";par.append(row);s.addEventListener("change",calc);return{row,s}};
+  const pre=(par,list,target)=>{const s=el("select");s.append(el("option",{value:""},"Vorlage wählen …"));list.forEach(([n,v])=>s.append(el("option",{value:v},n)));par.append(el("div",{class:"preset"},el("span"),s));s.addEventListener("change",()=>{if(s.value){target.set(+s.value);calc()}});return s};
+  const cols=el("div",{class:"cols"}),L=el("div"),R=el("div");cols.append(L,R);c.append(cols);
+  L.append(el("div",{class:"sub"},"1  Wind"));
+  const vw=mk(L,"Windgeschwindigkeit v","vel","km/h",100);pre(L,WINDV,vw);
+  const vbft=el("div",{style:"margin:-2px 0 6px;font-size:12.5px;color:var(--mut)"});L.append(vbft);
+  const hk=sel(L,"Höhenkorrektur",[["nein","keine (v gilt in Objekthöhe)"],["ja","v gilt in 10 m Höhe → umrechnen"]]);
+  const zz=mk(L,"Objekthöhe z (Mitte Fläche)","len","m",5),al=mk(L,"Gelände-Exponent α","num","–",0.16);const alp=pre(L,TERR,al);
+  const gf=mk(L,"Böen- / Sicherheitsfaktor","num","–",1.0);
+  const tl=mk(L,"Lufttemperatur","temp","°C",10),pl=mk(L,"Luftdruck","gpress","hPa",1013);
+  R.append(el("div",{class:"sub"},"2  Angeströmte Fläche"));
+  const am=sel(R,"Fläche angeben als",[["ab","Breite × Höhe"],["a","Fläche direkt"]]);
+  const fb=mk(R,"Breite b","len","m",2),fh=mk(R,"Höhe","len","m",1),fa_=mk(R,"Fläche A","area","m²",2);
+  const cf=mk(R,"Kraftbeiwert c_f","num","–",1.8);pre(R,CF,cf);
+  const hs=mk(R,"Hebelarm h (Kraft → Fusspunkt)","len","m",2.5);
+  const mg=mk(R,"Eigengewicht (Standsicherheit)","mass","kg",0),kb=mk(R,"Kippkante Abstand zum Schwerpunkt","len","m",0.4);
+  c.append(el("div",{class:"sub"},"Ergebnis"));const o1=el("div"),o2=el("div"),oc=el("div",{class:"cols"});oc.append(o1,o2);c.append(oc);
+  const oV=mo(o1,"Windgeschw. am Objekt","vel","km/h"),oVm=mo(o1,"Windgeschw. am Objekt","vel","m/s"),oB=mo(o1,"Beaufort","",""),oRho=mo(o1,"Luftdichte ρ","dens","kg/m³"),oQ=mo(o1,"Staudruck q","flast","Pa = N/m²"),oQk=mo(o1,"Staudruck q","flast","kN/m²");
+  const oA=mo(o2,"Fläche A","area","m²"),oW=mo(o2,"Winddruck w = c_f·q","flast","kN/m²"),oF=mo(o2,"Windkraft F_w","force","N"),oFk=mo(o2,"Windkraft F_w","force","kp"),oM=mo(o2,"Kippmoment M","torque","Nm"),oS=mo(o2,"Standsicherheit (M_Gewicht / M_Wind)","","–");
+  oFk.row.querySelector("label").textContent="Windkraft F_w (als Gewicht)";
+  const note=el("div",{class:"note"}),hint=el("div",{class:"hint"});c.append(note,hint);
+  function calc(){
+    const show=(o,b)=>o.row.classList.toggle("hide",!b);
+    const hj=hk.s.value==="ja";show(zz,hj);show(al,hj);alp.parentNode.classList.toggle("hide",!hj);
+    const ab=am.s.value==="ab";show(fb,ab);show(fh,ab);show(fa_,!ab);
+    const v0=vw.get();const b0=bft(v0);vbft.textContent=isFinite(v0)?"= "+fmt(Math.round(v0*10)/10)+" m/s = "+fmt(Math.round(v0*3.6))+" km/h = Bft "+b0+" ("+BFTN[b0]+")":"";
+    const v=hj?v0*Math.pow(Math.max(zz.get(),1)/10,al.get()):v0;
+    const rho=pl.get()/(287.05*tl.get());const q=rho/2*v*v;const A=ab?fb.get()*fh.get():fa_.get();
+    const g=gf.get()||1,w=cf.get()*q*g,F=w*A,M=F*hs.get();
+    oV.set(v);oVm.set(v);const b=bft(v);oB.set(b+" – "+BFTN[b]);oRho.set(rho);oQ.set(q);oQk.set(q);oA.set(A);oW.set(w);oF.set(F);oFk.set(F);oM.set(M);
+    const mG=mg.get()*9.80665*kb.get();const sf=mG>0&&M>0?mG/M:NaN;oS.set(isFinite(sf)?fmt(Math.round(sf*100)/100)+(sf>=1.5?"  (ok ≥ 1,5)":sf>=1?"  (knapp < 1,5)":"  (KIPPT!)"):"–");
+    let t=[];if(isFinite(sf)&&sf<1)t.push("Kippgefahr: Windmoment grösser als Standmoment – Ballast oder Verankerung vorsehen.");else if(isFinite(sf)&&sf<1.5)t.push("Standsicherheit unter 1,5 – Reserve zu klein.");
+    if(v>=20)t.push("Ab ca. 20 m/s (72 km/h) Arbeiten mit Kran / Hebebühne in der Regel einstellen (Herstellerangabe beachten).");
+    note.textContent=t.join(" ");
+    hint.textContent="Vereinfachte Berechnung mit Kraftbeiwerten (Richtwerte nach EN 1991-1-4 / SIA 261). Für Bauwerke und Tragwerksnachweise gelten die Normwerte (Referenz-Staudruck nach Ort, Geländekategorie, Böenfaktor, Teilsicherheitsbeiwerte). Faustregel: 100 km/h → q ≈ 0,48 kN/m² ≈ 49 kg/m².";
+  }
+  calc();return c;
+}
+
 /* ============ PDF-EXPORT (Bereich Berechnungen) ============ */
 const loadJs=src=>new Promise((ok,err)=>{if(document.querySelector('script[data-src="'+src+'"]'))return ok();const s=document.createElement("script");s.src=src;s.dataset.src=src;s.onload=ok;s.onerror=()=>err(new Error(src));document.head.append(s)});
 const imgData=src=>new Promise(ok=>{const i=new Image();i.onload=()=>{try{const c=document.createElement("canvas");c.width=i.naturalWidth;c.height=i.naturalHeight;c.getContext("2d").drawImage(i,0,0);ok(c.toDataURL("image/png"))}catch(e){ok(null)}};i.onerror=()=>ok(null);i.src=src});
@@ -682,7 +742,7 @@ const TABS=["conv","mech","kaelte","calc","tab"];
 /* ============ INIT ============ */
 F.mech.forEach(d=>document.getElementById("g-mech").append(card(d)));
 const gk=document.getElementById("g-kaelte");gk.append(refCard());gk.append(glyCard());F.kaelte.forEach(d=>gk.append(card(d)));
-{const gc=document.getElementById("g-calc");const dc=dpCard();gc.append(dc);addPdfBar(dc);const vc=ventCard();gc.append(vc);addPdfBar(vc);}
+{const gc=document.getElementById("g-calc");const dc=dpCard();gc.append(dc);addPdfBar(dc);const vc=ventCard();gc.append(vc);addPdfBar(vc);const wc=windCard();gc.append(wc);addPdfBar(wc);}
 buildConv();buildTables();
 document.querySelectorAll(".search").forEach(s=>s.addEventListener("input",()=>{const q=s.value.toLowerCase().trim();
   document.querySelectorAll("#g-"+s.dataset.for+" .card").forEach(c=>c.classList.toggle("hide",q&&!q.split(/\s+/).every(w=>c.dataset.s.includes(w))))}));
