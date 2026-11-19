@@ -112,6 +112,8 @@ h2{font-size:16px;margin:18px 0 8px}
   <section id="p-calc" class="hide"><div class="grid" id="g-calc"></div></section>
   <section id="p-tab" class="hide"></section>
 </main>
+<script src="wtdata.js"></script>
+<script src="wt.js"></script>
 <script>
 "use strict";
 /* ============ EINHEITEN ============ */
@@ -623,6 +625,8 @@ function cardReport(card){
     if(e.classList.contains("hide"))continue;
     if(e.classList.contains("sub")){cur={h:e.textContent.trim(),rows:[]};secs.push(cur);continue}
     if(e.tagName==="SUMMARY"){cur={h:e.textContent.trim(),rows:[]};secs.push(cur);continue}
+    if(e.classList.contains("tw")){const t=e.querySelector("table");if(t)cur.table=[...t.rows].map(r=>[...r.cells].map(x=>x.textContent));continue}
+    if(e.classList.contains("pdfmsg")){cur.msg=e.textContent.trim();continue}
     if(e.classList.contains("fit")){for(const f of e.children){const n=parse(f.children[1].value);if(n>0)cur.rows.push([f.children[0].textContent,n+" ×",f.children[2].textContent])}if(!cur.rows.length)cur.rows.push(["keine Formteile","",""]);continue}
     if(e.classList.contains("row")){const lab=e.children[0].textContent.trim();const a=e.children[1],b=e.children[2];
       const val=x=>!x?"":x.tagName==="INPUT"?(isFinite(parse(x.value.replace(/[’']/g,"")))?fmt(parse(x.value.replace(/[’']/g,""))):x.value):x.tagName==="SELECT"?selTxt(x):x.classList&&x.classList.contains("seg")?(x.querySelector(".on")||{}).textContent||"":x.textContent.trim();
@@ -635,7 +639,7 @@ function cardReport(card){
     if(e.children.length&&!["fig","f","note","hint","preset","grp"].some(k=>e.classList.contains(k))&&e.tagName!=="H3")walk(e);
   }};walk(card);
   return{title:card.dataset.pdf||card.querySelector("h3").textContent,group:(card.querySelector(".grp")||{}).textContent||"",formula:(card.querySelector(".f")||{}).textContent||"",
-    note:[...card.querySelectorAll(".note")].map(x=>x.textContent).filter(Boolean).join(" "),hint:[...card.querySelectorAll(".hint")].map(x=>x.textContent).join(" "),secs:secs.filter(s=>s.rows.length)};
+    note:[...card.querySelectorAll(".note")].map(x=>x.textContent).filter(Boolean).join(" "),hint:[...card.querySelectorAll(".hint:not(.pdfmsg)")].map(x=>x.textContent).join(" "),secs:secs.filter(s=>s.rows.length||s.table||s.msg)};
 }
 async function makePdf(card,meta){
   await loadJs("jspdf.umd.min.js");await loadJs("pdffont.js");
@@ -662,11 +666,17 @@ async function makePdf(card,meta){
   if(R.formula){need(16);doc.setFont("DV","bold");doc.setFontSize(10);doc.setTextColor(...NAVY);doc.text("Berechnungsgrundlage",M,y);y+=5;
     doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.splitTextToSize(R.formula,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.5);doc.setTextColor(60);doc.text(l,M,y);y+=4.1});y+=2}
   // Abschnitte
-  for(const s of R.secs){need(s.h==="Ergebnis"?Math.min(50,8+s.rows.length*4.9):14);doc.setFont("DV","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(s.h,M,y);doc.setDrawColor(...ORA);doc.setLineWidth(.5);doc.line(M,y+1.5,M+30,y+1.5);doc.setLineWidth(.2);y+=5.3;
+  for(const s of R.secs){need(s.h==="Ergebnis"?Math.min(50,8+s.rows.length*4.9):s.table?Math.min(60,10+s.table.length*4.9):14);doc.setFont("DV","bold");doc.setFontSize(10.5);doc.setTextColor(...NAVY);doc.text(s.h,M,y);doc.setDrawColor(...ORA);doc.setLineWidth(.5);doc.line(M,y+1.5,M+30,y+1.5);doc.setLineWidth(.2);y+=5.3;
     s.rows.forEach((r,i)=>{need(5.2);if(r.res){doc.setFillColor(233,247,241);doc.rect(M,y-3.6,W-2*M,4.9,"F")}else if(i%2){doc.setFillColor(247,248,250);doc.rect(M,y-3.6,W-2*M,4.9,"F")}
       doc.setFontSize(8.9);doc.setFont("DV","normal");doc.setTextColor(40);doc.text(doc.splitTextToSize(r[0],95)[0],M+2,y);
       doc.setFont("DV",r.res?"bold":"normal");doc.setTextColor(...(r.res?[13,110,79]:[20,20,20]));doc.text(String(r[1]),M+138,y,{align:"right"});
-      doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=4.9});y+=2.5}
+      doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=4.9});
+    if(s.table){const nc=s.table[0].length,cw=nc===5&&s.h.startsWith("Variantenvergleich")?[66,27,30,27,30]:[64,30,30,28,28],cx=[];let a=M;cw.forEach(w=>{cx.push(a);a+=w});
+      s.table.forEach((tr,i)=>{need(5.4);if(i===0){doc.setFillColor(232,240,250);doc.rect(M,y-3.7,W-2*M,5,"F")}else if(i%2===0){doc.setFillColor(247,248,250);doc.rect(M,y-3.6,W-2*M,4.9,"F")}
+        tr.forEach((v,k)=>{doc.setFont("DV",i===0||k===2?"bold":"normal");doc.setFontSize(8.6);doc.setTextColor(...(i===0?NAVY:k===2?[13,110,79]:[30,30,30]));
+          const t=doc.splitTextToSize(String(v),cw[k]-3)[0];if(k===0||k===3)doc.text(t,cx[k]+2,y);else doc.text(t,cx[k]+cw[k]-3,y,{align:"right"})});y+=4.9})}
+    if(s.msg){y+=1;doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(...NAVY);doc.splitTextToSize(s.msg,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(l,M,y);y+=4.3})}
+    y+=2.5}
   if(R.note){need(12);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.splitTextToSize("Hinweis: "+R.note,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.text(l,M,y);y+=4.3});y+=2}
   if(R.hint){doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.splitTextToSize(R.hint,W-2*M).forEach(l=>{need(5);doc.setFont("DV","normal");doc.setFontSize(8.3);doc.setTextColor(100);doc.text(l,M,y);y+=4})}
   foot();
@@ -742,7 +752,7 @@ const TABS=["conv","mech","kaelte","calc","tab"];
 /* ============ INIT ============ */
 F.mech.forEach(d=>document.getElementById("g-mech").append(card(d)));
 const gk=document.getElementById("g-kaelte");gk.append(refCard());gk.append(glyCard());F.kaelte.forEach(d=>gk.append(card(d)));
-{const gc=document.getElementById("g-calc");const dc=dpCard();gc.append(dc);addPdfBar(dc);const vc=ventCard();gc.append(vc);addPdfBar(vc);const wc=windCard();gc.append(wc);addPdfBar(wc);}
+{const gc=document.getElementById("g-calc");const hc=hxCard();gc.append(hc);addPdfBar(hc);const dc=dpCard();gc.append(dc);addPdfBar(dc);const vc=ventCard();gc.append(vc);addPdfBar(vc);const wc=windCard();gc.append(wc);addPdfBar(wc);}
 buildConv();buildTables();
 document.querySelectorAll(".search").forEach(s=>s.addEventListener("input",()=>{const q=s.value.toLowerCase().trim();
   document.querySelectorAll("#g-"+s.dataset.for+" .card").forEach(c=>c.classList.toggle("hide",q&&!q.split(/\s+/).every(w=>c.dataset.s.includes(w))))}));
