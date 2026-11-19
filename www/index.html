@@ -671,10 +671,10 @@ async function makePdf(card,meta){
       doc.setFontSize(8.9);doc.setFont("DV","normal");doc.setTextColor(40);doc.text(doc.splitTextToSize(r[0],95)[0],M+2,y);
       doc.setFont("DV",r.res?"bold":"normal");doc.setTextColor(...(r.res?[13,110,79]:[20,20,20]));doc.text(String(r[1]),M+138,y,{align:"right"});
       doc.setFont("DV","normal");doc.setTextColor(70);doc.text(String(r[2]||""),M+141,y);y+=4.9});
-    if(s.table){const nc=s.table[0].length,cw=nc===5&&s.h.startsWith("Variantenvergleich")?[66,27,30,27,30]:[64,30,30,28,28],cx=[];let a=M;cw.forEach(w=>{cx.push(a);a+=w});
+    if(s.table){const nc=s.table[0].length,cw=nc===8?[11,62,24,15,18,17,16,17]:nc===5&&s.h.startsWith("Variantenvergleich")?[66,27,30,27,30]:[64,30,30,28,28],cx=[];let a=M;cw.forEach(w=>{cx.push(a);a+=w});
       s.table.forEach((tr,i)=>{need(5.4);if(i===0){doc.setFillColor(232,240,250);doc.rect(M,y-3.7,W-2*M,5,"F")}else if(i%2===0){doc.setFillColor(247,248,250);doc.rect(M,y-3.6,W-2*M,4.9,"F")}
-        tr.forEach((v,k)=>{doc.setFont("DV",i===0||k===2?"bold":"normal");doc.setFontSize(8.6);doc.setTextColor(...(i===0?NAVY:k===2?[13,110,79]:[30,30,30]));
-          const t=doc.splitTextToSize(String(v),cw[k]-3)[0];if(k===0||k===3)doc.text(t,cx[k]+2,y);else doc.text(t,cx[k]+cw[k]-3,y,{align:"right"})});y+=4.9})}
+        const bk=nc===8?4:2;tr.forEach((v,k)=>{doc.setFont("DV",i===0||k===bk?"bold":"normal");doc.setFontSize(nc===8?7.6:8.6);doc.setTextColor(...(i===0?NAVY:k===bk?[13,110,79]:[30,30,30]));
+          const t=doc.splitTextToSize(String(v),cw[k]-3)[0];if(k===0||(nc===5&&k===3)||(nc===8&&k===1))doc.text(t,cx[k]+2,y);else doc.text(t,cx[k]+cw[k]-3,y,{align:"right"})});y+=4.9})}
     if(s.msg){y+=1;doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(...NAVY);doc.splitTextToSize(s.msg,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(...NAVY);doc.text(l,M,y);y+=4.3})}
     y+=2.5}
   if(R.note){need(12);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.splitTextToSize("Hinweis: "+R.note,W-2*M).forEach(l=>{need(5);doc.setFont("DV","bold");doc.setFontSize(9);doc.setTextColor(154,91,0);doc.text(l,M,y);y+=4.3});y+=2}

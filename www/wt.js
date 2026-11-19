@@ -430,6 +430,19 @@ function hxCard(){
   num(vb,"cmp_q","Wunsch-Leistung","power","kW",100);num(vb,"cmp_T","Wunsch-Temperatur","temp","°C",30);
   sel(vb,"cmp_k","Angepasst wird",[["size","Baugrösse"],["mh","Durchfluss warme Seite"],["mc","Durchfluss kalte Seite"],["tsat","Sättigungstemperatur Kältemittel"]],"size");
 
+
+  // --- Auswahlassistent (Fin-and-Tube / Microchannel) ---
+  const ab=blk(c,"Auswahlassistent: passende Bauart & Ausführung vorschlagen");
+  const abi=el("div",{class:"hint",style:"margin:0 0 6px"},"Nutzt die Luft-, Medium- bzw. Kältemitteldaten von oben und rechnet viele Ausführungen durch: Rohrdurchmesser, Lamellenform und -teilung, Rohrreihen bzw. Microchannel-Tiefe, Lamellenteilung und Blöcke.");ab.append(abi);
+  sel(ab,"aw_typ","Vorauswahl Bauart",[["fin","Lamellenrohr (Fin-and-Tube)"],["mchx","Microchannel"],["both","beide vergleichen"]],"both");
+  sel(ab,"aw_mode","Vorgabe",[["dim","Einbaumass vorgegeben (Breite × Höhe)"],["cap","Leistung / Temperatur vorgegeben – Grösse frei"]],"dim");
+  sel(ab,"aw_tgt","Ziel",[["Q","Leistung"],["T","Luft-Austrittstemperatur"],["max","grösstmögliche Leistung im Einbaumass"]],"Q");
+  num(ab,"aw_q","Gewünschte Leistung","power","kW",30);num(ab,"aw_T","Gewünschte Luft-Austrittstemperatur","temp","°C",14);
+  const awc=el("div",{class:"cols"}),aw1=el("div"),aw2=el("div");awc.append(aw1,aw2);ab.append(awc);
+  num(aw1,"aw_W","Breite (Stirnfläche, Rohrlänge)","len","mm",1200);num(aw1,"aw_H","Höhe (Stirnfläche)","len","mm",600);
+  num(aw2,"aw_D","Max. Bautiefe (0 = beliebig)","len","mm",0);num(aw2,"aw_v","Max. Anströmgeschwindigkeit","vel","m/s",2.5);
+  const awBtn=el("button",{type:"button",class:"pdfbtn",style:"margin:6px 0"},"Vorschläge berechnen");ab.append(awBtn);
+  const awBox=el("div");ab.append(awBox);
   // --- Ergebnisse ---
   c.append(el("div",{class:"sub"},"Ergebnis"));const oc=el("div",{class:"cols"}),o1=el("div"),o2=el("div");oc.append(o1,o2);c.append(oc);
   const O={};const ov=(par,id,lab,q,u)=>{O[id]=outv(par,lab,q,u);return O[id]};
@@ -490,6 +503,9 @@ function hxCard(){
     vis(O.etaf,coil);vis(O.wf,coil);vis(O.air,coil&&airH&&(app==="cool"||app==="evap"));vis(O.shr,coil&&(app==="cool"||app==="evap"));
     vis(O.zon,ph!=="none");vis(O.mref,ph!=="none");vis(O.psat,ph!=="none");vis(O.eps,ph==="none");
     [O.ah,O.ac,O.wh,O.wc,O.Reh,O.dph,O.dpc].forEach(o=>vis(o,t!=="kman"));
+    vis(ab,coil);const am=F.aw_mode.get(),at=F.aw_tgt.get();const mo=F.aw_tgt.s.options[2];mo.disabled=am==="cap";if(am==="cap"&&at==="max")F.aw_tgt.set("Q");
+    vis(F.aw_q,F.aw_tgt.get()==="Q");vis(F.aw_T,F.aw_tgt.get()==="T");vis(F.aw_W,am==="dim");F.aw_H.row.querySelector("label").textContent=am==="dim"?"Höhe (Stirnfläche)":"Höhe vorgeben (0 = automatisch)";
+    vis(F.aw_v,am==="cap");
     return{t,ph,coil,app,airH,airC}}
 
   // --- Eingaben einsammeln ---
@@ -637,6 +653,76 @@ function hxCard(){
     mchx:"Kaltra (DE/AT) – Microchannel-Wärmetauscher nach Mass mit vielen Flachrohr- und Lamellengeometrien, eigene Auslegungssoftware MCHEselect; Danfoss (DK) – MCHE-Standardreihe und kundenspezifisch.",
     kman:"Hersteller je nach Bauart (siehe andere Bauarten)."};
   function makerBox(st){mfBox.append(el("div",{class:"sub"},"Hersteller (Auswahl, ohne Gewähr)"),el("div",{class:"pdfmsg hint",style:"color:var(--fg)"},MAKERS[st.t]+" Für Angebot und verbindliche Auslegung die Geometrie und Betriebsdaten aus diesem Bericht an den Hersteller senden."))}
+
+
+  /* ===== Auswahlassistent: Kandidaten erzeugen, rechnen, bewerten ===== */
+  const FNn={plain:"glatt",wavy:"gewellt",louver:"Kiemen",slit:"geschlitzt"};
+  function awCircuits(c,g,Qest){ // Kreisläufe so wählen, dass die Innenseite sinnvoll durchströmt wird
+    const di=g.do-2*g.tw,Ai=PI_*di*di/4,tubes=g.Nt*g.N;
+    if(c.ref){const S=HX.sat(c.ref.name,c.ref.tsat),mr=Math.max(Qest,100)/(S.r*(c.phase==="cond"?1.15:0.9)),G=c.phase==="cond"?250:150;return Math.max(1,Math.min(tubes,Math.round(mr/(G*Ai))))}
+    const side=c.airSide==="hot"?"cold":"hot",P=HX.props(c[side].fl,c[side].tin);return Math.max(1,Math.min(tubes,Math.round(c[side].m/(P.rho*1.0*Ai))))}
+  const PI_=Math.PI;
+  function awCandidates(c0,st,typ,W,H,Dmax){const out=[],evap=st.app==="evap";
+    if(typ!=="mchx"){const kt=c0.type==="fin"?c0.geo.kt:390,kf=c0.type==="fin"?c0.geo.kf:205,dl=c0.type==="fin"?c0.geo.delta:0.12e-3;
+      for(const p of HX_FINPRE)for(const fin of Object.keys(FNn))for(const fp of(evap?[2.1,2.5,3.2]:[1.8,2.5,3.2]))for(let N=1;N<=8;N++){
+        const D=N*p[3];if(Dmax>0&&D>Dmax+1e-9)break;const Nt=Math.max(1,Math.floor(H/p[2]+1e-9));
+        out.push({t:"fin",D,face:[W,Nt*p[2]],name:fmtS(p[1]*1000,p[1]*1000%1?2:0)+" mm "+FNn[fin]+" · "+N+" R. · Lam. "+fmtS(fp,1),
+          geo:{do:p[1],tw:p[4],Pt:p[2],Pl:p[3],N,Nt,L:W,Fp:fp/1000,delta:dl,circ:1,fin,stag:true,inner:c0.ref?"micro":"smooth",kt,kf}})}}
+    if(typ!=="fin"){const g0=c0.type==="mchx"?c0.geo:{Dt:1.8e-3,Tp:10e-3,Np:16,Td:0.02,pw:1e-3,ph:1.2e-3,delta:0.1e-3,Lp:1.2e-3,theta:27,kt:160,kf:200};
+      const pas=c0.type==="mchx"?c0.geo.passes:({cool:1,heat:1,evap:1,cond:3}[st.app]||1);
+      for(const td of[16,20,25.4,32])for(const fp of[1.0,1.2,1.4,1.7])for(const sl of[1,2]){const D=sl*td/1000+(sl-1)*0.01;if(Dmax>0&&D>Dmax+1e-9)continue;const Np=Math.max(1,Math.round(g0.Np/g0.Td*td/1000));
+        out.push({t:"mchx",D,face:[W,H],name:"T "+fmtS(td,td%1?1:0)+" · "+Np+" K. · Lam. "+fmtS(fp,1)+" · "+sl+" Block",
+          geo:Object.assign({},g0,{W,H,Td:td/1000,Fp:fp/1000,Np,slabs:sl,passes:pas})})}}
+    return out}
+  function awEval(c0,st,k){const cc=JSON.parse(JSON.stringify(c0));cc.type=k.t;cc.geo=JSON.parse(JSON.stringify(k.geo));
+    try{if(k.t==="fin"){cc.geo.circ=awCircuits(cc,cc.geo,k.Qest||20000);let r=HX.solve(cc);cc.geo.circ=awCircuits(cc,cc.geo,r.Q);r=HX.solve(cc);return{cc,r}}
+      return{cc,r:HX.solve(cc)}}catch(e){return null}}
+  async function awRun(){
+    const st=refresh();if(!st.coil)return;awBox.innerHTML="";awBtn.disabled=true;awBtn.textContent="Rechne Varianten …";await new Promise(r=>setTimeout(r,30));
+    try{
+      const c0=cfg(st),typ=F.aw_typ.get(),mode=F.aw_mode.get(),tgt=F.aw_tgt.get(),air=st.airH?"hot":"cold",inn=st.airH?"cold":"hot";
+      c0.type=st.t;const Pa=HX.props(c0[air].fl,c0[air].tin),Vair=c0[air].m/Pa.rho;
+      const tq=F.aw_q.get(),tT=F.aw_T.get()-273.15,Dmax=F.aw_D.get()||0;
+      let W=F.aw_W.get(),H=F.aw_H.get();
+      if(mode==="cap"){const A=Vair/Math.max(F.aw_v.get(),0.5);if(!(H>0))H=Math.sqrt(A/1.6);H=Math.ceil(H*100)/100;W=Math.ceil(A/H*100)/100}
+      const meets=r=>tgt==="Q"?r.Q>=tq*0.995:tgt==="T"?(st.airH?r.Tho<=tT+0.05:r.Tco>=tT-0.05):true;
+      const cand=awCandidates(c0,st,typ,W,H,Dmax);const res=[];let n=0;
+      for(const k of cand){if(tgt==="Q")k.Qest=tq;const e=awEval(c0,st,k);if(e&&isFinite(e.r.Q)){const r=e.r;
+          res.push({k,cc:e.cc,Q:r.Q,ta:st.airH?r.Tho:r.Tco,dpa:r[air].dp,dpi:isFinite(r.dpRef)?r.dpRef:r[inn].dp,vf:r[air].w,ok:meets(r),res:tgt==="Q"?r.Q/tq-1:tgt==="T"?Math.abs((st.airH?c0[air].tin-r.Tho:r.Tco-c0[air].tin)/(st.airH?c0[air].tin-tT:tT-c0[air].tin))-1:0})}
+        if(++n%60===0)await new Promise(r=>setTimeout(r,0))}
+      // je Grundausführung nur die kleinste Bautiefe, die das Ziel erreicht
+      let list;
+      if(tgt==="max")list=res.sort((a,b)=>b.Q-a.Q||a.dpa-b.dpa);
+      else{const seen=new Set(),bk=x=>x.res<=0.25?0:1;list=res.filter(x=>x.ok).sort((a,b)=>bk(a)-bk(b)||(bk(a)?a.res-b.res:a.k.D-b.k.D||a.dpa-b.dpa)).filter(x=>{const key=x.k.t+x.k.name.replace(/ · \d+ R\./,"");if(seen.has(key))return false;seen.add(key);return true})}
+      let top=list.slice(0,12);
+      if(typ==="both"){const f=list.filter(x=>x.k.t==="fin").slice(0,6),m=list.filter(x=>x.k.t==="mchx").slice(0,6);
+        const bk=x=>x.res<=0.25?0:1;top=[...f,...m].sort(tgt==="max"?(a,b)=>b.Q-a.Q||a.dpa-b.dpa:(a,b)=>bk(a)-bk(b)||(bk(a)?a.res-b.res:a.k.D-b.k.D||a.dpa-b.dpa))}
+      const vf=Vair/(W*H);
+      awBox.append(el("div",{class:"sub"},"Vorschläge"+(mode==="cap"?" (Stirnfläche "+fmtS(W*1000,0)+" × "+fmtS(H*1000,0)+" mm aus Luftmenge "+fmtS(Vair*3600,0)+" m³/h)":" für "+fmtS(W*1000,0)+" × "+fmtS(H*1000,0)+" mm")));
+      if(!top.length){awBox.append(el("div",{class:"note"},"Kein Vorschlag erreicht das Ziel"+(Dmax>0?" innerhalb der max. Bautiefe":"")+". Stirnfläche vergrössern, mehr Bautiefe zulassen oder Betriebsdaten (Luftmenge, Temperaturen) prüfen. Grösste gefundene Leistung: "+fmtS(Math.max(...res.map(x=>x.Q))/1000,2)+" kW."));return}
+      const t=el("table",{class:"cmp"});t.append(el("tr",{},...["Nr.","Bauart / Ausführung","Stirnmass B×H mm","Tiefe mm","Leistung kW",tgt==="max"?"Luft aus °C":"Reserve","Δp Luft Pa","Δp innen kPa"].map(h=>el("th",{},h))));
+      top.forEach((x,i)=>t.append(el("tr",{style:i===0?"font-weight:700":""},el("td",{},(i===0?"▶ ":"")+(i+1)),el("td",{style:"text-align:left"},(x.k.t==="fin"?"FT ":"MC ")+x.k.name),
+        el("td",{},fmtS(x.k.face[0]*1000,0)+"×"+fmtS(x.k.face[1]*1000,0)),el("td",{},fmtS(x.k.D*1000,0)),el("td",{},fmtS(x.Q/1000,2)),el("td",{},tgt==="max"?fmtS(x.ta,1):"+"+fmtS(Math.max(0,x.res)*100,0)+" %"),el("td",{},fmtS(x.dpa,0)),el("td",{},isFinite(x.dpi)?fmtS(x.dpi/1000,1):"–"))));
+      awBox.append(el("div",{class:"tw"},t),el("div",{class:"hint",style:"margin-top:2px"},"FT = Fin-and-Tube (Rohr-Ø · Lamellenform · Rohrreihen · Lamellenteilung mm) · MC = Microchannel (Rohrtiefe mm · Kanäle · Lamellenteilung mm · Blöcke). "+(tgt==="max"?"Sortiert nach grösster Leistung.":"Zuerst Ausführungen mit 0–25 % Reserve (kleinste Bautiefe, dann geringster Luft-Druckverlust), danach stärker überdimensionierte.")));
+      const best=top[0],bf=list.find(x=>x.k.t==="fin"),bm=list.find(x=>x.k.t==="mchx");
+      let msg="Empfehlung: "+(best.k.t==="fin"?"Fin-and-Tube ":"Microchannel ")+best.k.name+", "+fmtS(best.k.D*1000,0)+" mm Bautiefe, "+fmtS(best.Q/1000,2)+" kW, Δp Luft "+fmtS(best.dpa,0)+" Pa.";
+      if(typ==="both"&&bf&&bm)msg+=" Bester "+(best.k.t==="fin"?"Microchannel: "+bm.k.name+" ("+fmtS(bm.k.D*1000,0)+" mm, "+fmtS(bm.dpa,0)+" Pa)":"Fin-and-Tube: "+bf.k.name+" ("+fmtS(bf.k.D*1000,0)+" mm, "+fmtS(bf.dpa,0)+" Pa)")+".";
+      if(st.airH&&(st.app==="cool"||st.app==="evap")&&vf>2.8)msg+=" Achtung: Anströmgeschwindigkeit "+fmtS(vf,1)+" m/s – bei nassem Kühler über ca. 2,5–2,8 m/s Tropfenabriss, Tropfenabscheider vorsehen.";
+      if(typ==="both"&&bm&&bm.res>0.5)msg+=" Microchannel ist hier selbst in der kleinsten Ausführung "+fmtS(bm.res*100,0)+" % überdimensioniert – mit kleinerer Blockbreite bzw. -höhe möglich (Vorgabe Einbaumass nutzen).";
+      if(st.ph!=="none")msg+=" Kältemittelseite: Anzahl Kreisläufe bzw. Pässe vom Hersteller optimieren lassen.";
+      awBox.append(el("div",{class:"pdfmsg hint",style:"color:var(--fg);font-weight:600"},msg));
+      // übernehmen
+      const ps=el("select");top.forEach((x,i)=>ps.append(el("option",{value:i},(i+1)+": "+(x.k.t==="fin"?"FT ":"MC ")+x.k.name)));
+      const pb=el("button",{type:"button",class:"updbtn",style:"color:var(--fg);border-color:var(--line)"},"In die Berechnung übernehmen");
+      pb.addEventListener("click",()=>awApply(top[+ps.value]));
+      ps.style.flex="1";const pw=el("div",{style:"display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px"},el("span",{style:"font-size:13.5px"},"Vorschlag übernehmen:"),ps,pb);awBox.append(pw);
+    }finally{awBtn.disabled=false;awBtn.textContent="Vorschläge berechnen"}}
+  function awApply(x){const g=x.cc.geo,setL=(id,v)=>F[id].set(v);
+    F.type.set(x.k.t);refresh();
+    if(x.k.t==="fin"){setL("fi_do",g.do);setL("fi_t",g.tw);setL("fi_Pt",g.Pt);setL("fi_Pl",g.Pl);F.fi_N.set(g.N);F.fi_Nt.set(g.Nt);setL("fi_L",g.L);setL("fi_Fp",g.Fp);F.fi_c.set(g.circ);F.fi_fin.set(g.fin);F.fi_arr.set("stag");F.fi_in.set(g.inner)}
+    else{setL("mc_W",g.W);setL("mc_H",g.H);setL("mc_Td",g.Td);F.mc_Np.set(g.Np);setL("mc_Fp",g.Fp);F.mc_slab.set(String(g.slabs));F.mc_pa.set(g.passes)}
+    lastT="";calc();toast("Vorschlag übernommen – Berechnung aktualisiert");fig.scrollIntoView({behavior:"smooth",block:"start"})}
+  awBtn.addEventListener("click",awRun);
 
   onSel("type");setTimeout(calc,0);
   return c;
